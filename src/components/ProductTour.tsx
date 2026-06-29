@@ -86,6 +86,21 @@ function waitFor(selector: string | undefined, timeout = 3500): Promise<void> {
   });
 }
 
+// espera que a rota (URL) mude para a página alvo antes de destacar
+function waitForRoute(url: string, timeout = 4000): Promise<void> {
+  return new Promise((resolve) => {
+    const start = Date.now();
+    const tick = () => {
+      const p = window.location.pathname;
+      if (p === url || p.startsWith(url + "/") || Date.now() - start > timeout) return resolve();
+      window.setTimeout(tick, 80);
+    };
+    tick();
+  });
+}
+
+const delay = (ms: number) => new Promise<void>((r) => window.setTimeout(r, ms));
+
 // Visita guiada completa: navega página a página e mostra o tour de cada uma.
 function runGuided(stops: { url: string; steps: TourStep[] }[], navigate: (u: string) => void) {
   let i = 0;
@@ -93,6 +108,8 @@ function runGuided(stops: { url: string; steps: TourStep[] }[], navigate: (u: st
     if (i >= stops.length) return;
     const stop = stops[i];
     navigate(stop.url);
+    await waitForRoute(stop.url); // garantir que a navegação aconteceu (todas as páginas têm page-header)
+    await delay(200);             // deixar a nova página renderizar
     const firstSel = stop.steps.find((s) => s.element)?.element;
     await waitFor(firstSel);
     const steps = toDriveSteps(stop.steps);
