@@ -56,6 +56,7 @@ import OutreachDomains from "@/pages/OutreachDomains";
 import OutreachWhatsApp from "@/pages/OutreachWhatsApp";
 import Marketplace from "@/pages/Marketplace";
 import Inbox from "@/pages/Inbox";
+import SettingsHub from "@/pages/SettingsHub";
 import RequireFeature from "@/components/auth/RequireFeature";
 import NotFound from "@/pages/NotFound";
 
@@ -134,7 +135,7 @@ const App = () => (
                 <Route path="distribution/analytics" element={<DistributionAnalytics />} />
                 <Route path="integrations" element={<RequireFeature feature="module_integrations"><Integrations /></RequireFeature>} />
                 <Route path="plan" element={<Plan />} />
-                <Route path="settings" element={<OrgSettings />} />
+                <Route path="settings" element={<SettingsHub />} />
                 <Route path="ai-settings" element={<AiSettings />} />
                 <Route path="agents" element={<AiAgents />} />
                 <Route path="ai-knowledge" element={<AiKnowledge />} />

@@ -20,6 +20,7 @@ import { useOrganization } from "@/contexts/OrganizationContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import DashboardObjectives from "@/components/dashboard/DashboardObjectives";
+import SetupChecklist from "@/components/SetupChecklist";
 
 type Preset = "this_month" | "last_month" | "this_year" | "last_12";
 
@@ -212,6 +213,7 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
+      <SetupChecklist />
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="font-display text-3xl font-bold tracking-tight">Painel</h1>
