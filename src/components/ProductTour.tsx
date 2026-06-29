@@ -1,13 +1,16 @@
 import { useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { driver, type DriveStep } from "driver.js";
 import "driver.js/dist/driver.css";
 import { useOrganization } from "@/contexts/OrganizationContext";
+import { useEntitlements } from "@/hooks/useEntitlements";
 import { GROUPS, visibleGroups, type NavCtx } from "@/config/nav";
 import { getPageTour, CAMPAIGN_WIZARD_TOUR, type TourStep } from "@/config/tours";
 
 const TOUR_KEY = "tour_done_v1";
 const GROUP_IDS = new Set(GROUPS.map((g) => g.tourId).filter(Boolean) as string[]);
+
+const BTN = { nextBtnText: "Seguinte", prevBtnText: "Anterior", doneBtnText: "Concluir" };
 
 function ctxForRole(pr: string): NavCtx | null {
   if (pr === "admin") return { isAdmin: true, role: "admin" };
@@ -28,7 +31,7 @@ function roleSummary(isAdmin: boolean, role: string | null): { label: string; te
 function globalSteps(isAdmin: boolean, role: string | null): TourStep[] {
   const r = roleSummary(isAdmin, role);
   return [
-    { title: "Bem-vindo! 👋", description: `Como <b>${r.label}</b>, ${r.text}<br/><br/>Vamos ver onde está cada coisa — mostro-te só o que podes usar. (Podes rever este tour no botão <b>?</b> no topo.)` },
+    { title: "Bem-vindo! 👋", description: `Como <b>${r.label}</b>, ${r.text}<br/><br/>Vamos ver onde está cada coisa — mostro-te só o que podes usar. (Podes rever no botão <b>?</b> no topo, ou fazer a <b>Visita guiada completa</b> que percorre cada página.)` },
     { element: '[data-tour="sidebar-toggle"]', title: "Menu lateral", description: "Recolhes/expandes o menu. Os grupos abrem e fecham — só fica aberta a secção onde estás.", side: "bottom" },
     { element: '[data-tour="search"]', title: "Pesquisa rápida (⌘K / Ctrl+K)", description: "Escreve o nome de qualquer página ou ação e salta lá diretamente.", side: "bottom" },
     { element: '[data-tour="inicio"]', title: "Início", description: "O teu <b>Painel</b> com a visão geral e os teus <b>Objetivos</b>.", side: "right" },
@@ -36,15 +39,15 @@ function globalSteps(isAdmin: boolean, role: string | null): TourStep[] {
     { element: '[data-tour="vendas"]', title: "Clientes & Vendas", description: "<b>Clientes</b>, <b>Prospeção</b>, <b>Encomendas</b>, <b>Faturas</b>, <b>Subscrições</b> e <b>Comissões</b>.", side: "right" },
     { element: '[data-tour="atividade"]', title: "Atividade", description: "<b>Chamadas do dia</b>, <b>Agenda</b> e <b>Histórico de chamadas</b>.", side: "right" },
     { element: '[data-tour="catalogo"]', title: "Catálogo", description: "<b>Produtos</b>, <b>Canais de venda</b> e <b>Preços & Descontos</b>.", side: "right" },
-    { element: '[data-tour="analise"]', title: "Análise", description: "Inteligência sobre o negócio: Pareto, lead scoring, segmentos RFM e mais. (Disponível para gestão.)", side: "right" },
+    { element: '[data-tour="analise"]', title: "Análise", description: "Inteligência sobre o negócio: Pareto, lead scoring, segmentos RFM e mais.", side: "right" },
     { element: '[data-tour="posvenda"]', title: "Pós-venda", description: "Problemas, devoluções, vouchers, campanhas de carteira e conquistas.", side: "right" },
     { element: '[data-tour="distribuicao"]', title: "Distribuição", description: "Parceiros/revendedores, calculadora e análise da distribuição.", side: "right" },
     { element: '[data-tour="ia"]', title: "Inteligência Artificial", description: "Os <b>Agentes IA</b> e a <b>Base de conhecimento</b> que os alimenta.", side: "right" },
-    { element: '[data-tour="definicoes"]', title: "Definições", description: "Configuração concentrada: Organização, Equipa, Plano, IA, WhatsApp, Domínios e Integrações. (Só administradores.)", side: "right" },
+    { element: '[data-tour="definicoes"]', title: "Definições", description: "Configuração concentrada: Organização, Equipa, Plano, IA, WhatsApp, Domínios e Integrações.", side: "right" },
     { element: '[data-tour="org-switcher"]', title: "Organização ativa", description: "Trocas aqui entre organizações, se pertenceres a mais do que uma.", side: "bottom" },
     { element: '[data-tour="user-menu"]', title: "A tua conta", description: "Perfil, preferências e terminar sessão.", side: "bottom" },
     { element: '[data-tour="checklist"]', title: "Primeiros passos", description: "Guia-te na configuração inicial. Desaparece quando estiver tudo feito.", side: "top" },
-    { title: "Pronto! 🚀", description: "Dica: em cada página, abre o botão <b>?</b> → <b>Tour desta página</b> para uma explicação detalhada dessa área." },
+    { title: "Pronto! 🚀", description: "Para uma explicação página a página, abre o botão <b>?</b> → <b>Visita guiada completa</b>." },
   ];
 }
 
@@ -55,28 +58,69 @@ function groupIdOf(selector?: string): string | null {
   return id && GROUP_IDS.has(id) ? id : null;
 }
 
-function runSteps(raw: TourStep[], allowedGroups?: Set<string>) {
-  const steps: DriveStep[] = raw
+function toDriveSteps(raw: TourStep[], allowedGroups?: Set<string>): DriveStep[] {
+  return raw
     .filter((s) => {
       const gid = groupIdOf(s.element);
-      if (gid && allowedGroups && !allowedGroups.has(gid)) return false; // secção sem acesso para este papel
+      if (gid && allowedGroups && !allowedGroups.has(gid)) return false;
       return !s.element || document.querySelector(s.element);
     })
     .map((s) => ({ element: s.element, popover: { title: s.title, description: s.description, side: s.side, align: "start" } }));
+}
+
+function runSteps(raw: TourStep[], allowedGroups?: Set<string>) {
+  const steps = toDriveSteps(raw, allowedGroups);
   if (!steps.length) return;
-  driver({
-    showProgress: true,
-    progressText: "{{current}} de {{total}}",
-    nextBtnText: "Seguinte",
-    prevBtnText: "Anterior",
-    doneBtnText: "Concluir",
-    steps,
-  }).drive();
+  driver({ showProgress: true, progressText: "{{current}} de {{total}}", ...BTN, steps }).drive();
+}
+
+function waitFor(selector: string | undefined, timeout = 3500): Promise<void> {
+  return new Promise((resolve) => {
+    if (!selector) return resolve();
+    const start = Date.now();
+    const tick = () => {
+      if (document.querySelector(selector) || Date.now() - start > timeout) return resolve();
+      window.setTimeout(tick, 100);
+    };
+    tick();
+  });
+}
+
+// Visita guiada completa: navega página a página e mostra o tour de cada uma.
+function runGuided(stops: { url: string; steps: TourStep[] }[], navigate: (u: string) => void) {
+  let i = 0;
+  const showStop = async () => {
+    if (i >= stops.length) return;
+    const stop = stops[i];
+    navigate(stop.url);
+    const firstSel = stop.steps.find((s) => s.element)?.element;
+    await waitFor(firstSel);
+    const steps = toDriveSteps(stop.steps);
+    if (!steps.length) { i++; return showStop(); }
+    const isLast = i === stops.length - 1;
+    const d = driver({
+      showProgress: true,
+      progressText: `Página ${i + 1}/${stops.length} · {{current}} de {{total}}`,
+      nextBtnText: "Seguinte",
+      prevBtnText: "Anterior",
+      doneBtnText: isLast ? "Concluir" : "Próxima página →",
+      steps,
+      onDestroyStarted: () => {
+        const completed = !d.hasNextStep();
+        d.destroy();
+        if (completed && !isLast) { i++; showStop(); }
+      },
+    });
+    d.drive();
+  };
+  showStop();
 }
 
 export default function ProductTour() {
   const { pathname } = useLocation();
+  const navigate = useNavigate();
   const { isAdmin, role } = useOrganization();
+  const { isEnabled } = useEntitlements();
 
   useEffect(() => {
     const onGlobal = (e: Event) => {
@@ -88,15 +132,29 @@ export default function ProductTour() {
     };
     const onPage = () => { const t = getPageTour(pathname); if (t) runSteps(t); };
     const onWizard = () => runSteps(CAMPAIGN_WIZARD_TOUR);
+    const onGuided = () => {
+      const ctx = { isAdmin, role: role ?? null };
+      const stops: { url: string; steps: TourStep[] }[] = [];
+      for (const g of visibleGroups(ctx)) {
+        for (const it of g.items) {
+          if (it.feature && !isEnabled(it.feature)) continue;
+          const steps = getPageTour(it.url);
+          if (steps && steps.length) stops.push({ url: it.url, steps });
+        }
+      }
+      if (stops.length) runGuided(stops, navigate);
+    };
     window.addEventListener("app:start-tour", onGlobal);
     window.addEventListener("app:start-page-tour", onPage);
     window.addEventListener("app:tour-campaign-wizard", onWizard);
+    window.addEventListener("app:start-guided", onGuided);
     return () => {
       window.removeEventListener("app:start-tour", onGlobal);
       window.removeEventListener("app:start-page-tour", onPage);
       window.removeEventListener("app:tour-campaign-wizard", onWizard);
+      window.removeEventListener("app:start-guided", onGuided);
     };
-  }, [isAdmin, role, pathname]);
+  }, [isAdmin, role, pathname, isEnabled, navigate]);
 
   // auto-arranque uma vez para utilizadores novos
   useEffect(() => {

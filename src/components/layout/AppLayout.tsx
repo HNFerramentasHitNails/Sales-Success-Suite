@@ -43,7 +43,10 @@ export default function AppLayout() {
                   <HelpCircle className="h-5 w-5" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuContent align="end" className="w-60">
+                <DropdownMenuItem onClick={() => window.dispatchEvent(new Event("app:start-guided"))}>
+                  ✨ Visita guiada completa
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => window.dispatchEvent(new Event("app:start-tour"))}>
                   Tour da plataforma
                 </DropdownMenuItem>

@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { Lock, ChevronDown } from "lucide-react";
 import {
@@ -19,6 +20,14 @@ export default function AppSidebar() {
 
   const groups = visibleGroups({ isAdmin, role: role ?? null });
   const isActive = (url: string) => pathname === url || pathname.startsWith(url + "/");
+
+  // abrir automaticamente o grupo da página ativa (ex.: durante a visita guiada)
+  const [openMap, setOpenMap] = useState<Record<string, boolean>>({});
+  useEffect(() => {
+    const active = groups.find((g) => g.items.some((it) => isActive(it.url)));
+    if (active) setOpenMap((m) => ({ ...m, [active.label]: true }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
 
   const renderItem = (item: NavItem) => {
     const locked = !entLoading && item.feature ? !isEnabled(item.feature) : false;
@@ -72,7 +81,12 @@ export default function AppSidebar() {
             );
           }
           return (
-            <Collapsible key={group.label} defaultOpen={hasActive} className="group/collapsible">
+            <Collapsible
+              key={group.label}
+              open={openMap[group.label] ?? hasActive}
+              onOpenChange={(o) => setOpenMap((m) => ({ ...m, [group.label]: o }))}
+              className="group/collapsible"
+            >
               <SidebarGroup data-tour={group.tourId}>
                 <SidebarGroupLabel asChild>
                   <CollapsibleTrigger className="flex w-full items-center justify-between text-sidebar-foreground/70 hover:text-sidebar-foreground">
