@@ -219,7 +219,7 @@ function AgentWorkspace({ agent, orgId, canManageAi, active, initialPrompt, onPr
   useEffect(() => {
     if (!active || didInitRef.current) return;
     didInitRef.current = true;
-    loadConversations({ autoOpen: true });
+    loadConversations({ autoOpen: !initialPrompt });
   }, [active, loadConversations]);
 
   // Auto-scroll
@@ -231,17 +231,6 @@ function AgentWorkspace({ agent, orgId, canManageAi, active, initialPrompt, onPr
     if (active) textareaRef.current?.focus();
   }, [active, activeConvId]);
 
-  // prompt vindo do Painel ("Perguntar ao Agente"): pré-preenche o chat numa nova conversa
-  const promptAppliedRef = useRef(false);
-  useEffect(() => {
-    if (!active || !initialPrompt || promptAppliedRef.current) return;
-    promptAppliedRef.current = true;
-    setActiveConvId(null);
-    setMessages([]);
-    setInput(initialPrompt);
-    setTimeout(() => textareaRef.current?.focus(), 60);
-    onPromptConsumed?.();
-  }, [active, initialPrompt, onPromptConsumed]);
 
   const startNewConversation = () => {
     setActiveConvId(null);
@@ -381,6 +370,19 @@ function AgentWorkspace({ agent, orgId, canManageAi, active, initialPrompt, onPr
       sendMessage();
     }
   };
+
+  // prompt vindo do Painel ("Perguntar ao Agente"): envia automaticamente numa nova conversa
+  const promptAppliedRef = useRef(false);
+  useEffect(() => {
+    if (!active || !initialPrompt || promptAppliedRef.current) return;
+    promptAppliedRef.current = true;
+    onPromptConsumed?.();
+    setActiveConvId(null);
+    setMessages([]);
+    setInput("");
+    void sendMessage(initialPrompt);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active, initialPrompt]);
 
   const handleDelete = async () => {
     if (!deleteId) return;
