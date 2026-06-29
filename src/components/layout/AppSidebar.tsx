@@ -33,6 +33,7 @@ const GROUPS: NavGroup[] = [
   ]},
   { label: "Outreach", gate: "all", items: [
     { title: "Leads", url: "/app/leads", icon: Filter, feature: "module_outreach" },
+    { title: "Marketplace de leads", url: "/app/marketplace", icon: Store, feature: "module_outreach" },
     { title: "Templates", url: "/app/templates", icon: FileText, feature: "module_outreach" },
     { title: "Campanhas", url: "/app/campaigns", icon: Send, feature: "module_outreach" },
     { title: "WhatsApp", url: "/app/whatsapp", icon: MessageCircle, feature: "module_outreach", adminOnly: true },

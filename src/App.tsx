@@ -54,6 +54,7 @@ import Templates from "@/pages/Templates";
 import Campaigns from "@/pages/Campaigns";
 import OutreachDomains from "@/pages/OutreachDomains";
 import OutreachWhatsApp from "@/pages/OutreachWhatsApp";
+import Marketplace from "@/pages/Marketplace";
 import RequireFeature from "@/components/auth/RequireFeature";
 import NotFound from "@/pages/NotFound";
 
@@ -101,6 +102,7 @@ const App = () => (
                 <Route path="customers" element={<Customers />} />
                 <Route path="prospects" element={<Prospects />} />
                 <Route path="leads" element={<RequireFeature feature="module_outreach"><Leads /></RequireFeature>} />
+                <Route path="marketplace" element={<RequireFeature feature="module_outreach"><Marketplace /></RequireFeature>} />
                 <Route path="templates" element={<RequireFeature feature="module_outreach"><Templates /></RequireFeature>} />
                 <Route path="campaigns" element={<RequireFeature feature="module_outreach"><Campaigns /></RequireFeature>} />
                 <Route path="outreach-domains" element={<RequireFeature feature="module_outreach"><OutreachDomains /></RequireFeature>} />
