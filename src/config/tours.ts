@@ -75,8 +75,36 @@ export const CAMPAIGN_WIZARD_TOUR: TourStep[] = [
   { element: '[data-tour="wizard-nav"]', title: "Navegação", description: "Avança com 'Seguinte' (só ativa quando o passo está válido) e, no fim, 'Criar e Lançar' inscreve os contactos e dispara a 1ª mensagem.", side: "top" },
 ];
 
+import { GROUPS } from "./nav";
+
+// nome legível da página a partir da navegação (item com URL mais específico)
+function navTitle(pathname: string): string | null {
+  let best: string | null = null;
+  let bestLen = 0;
+  for (const g of GROUPS) {
+    for (const it of g.items) {
+      if ((pathname === it.url || pathname.startsWith(it.url + "/")) && it.url.length > bestLen) {
+        best = it.title;
+        bestLen = it.url.length;
+      }
+    }
+  }
+  return best;
+}
+
+// tour genérico para qualquer página sem tour próprio (usa elementos comuns a todas)
+function fallbackTour(pathname: string): TourStep[] {
+  const title = navTitle(pathname);
+  return [
+    { element: '[data-tour="page-header"]', title: title || "Esta página", description: `${title ? `Estás em <b>${title}</b>. ` : ""}O título e a descrição no topo indicam sempre o que esta página faz.`, side: "bottom" },
+    { element: '[data-tour="page-actions"]', title: "Ações principais", description: "Os botões de ação desta página (criar, importar, filtrar…) estão aqui no topo, à direita.", side: "bottom" },
+    { element: '[data-tour="search"]', title: "Ir para outra página", description: "Usa a pesquisa rápida (⌘K) a qualquer momento para saltar para outra área.", side: "bottom" },
+  ];
+}
+
 export function getPageTour(pathname: string): TourStep[] | null {
+  if (!pathname.startsWith("/app")) return null;
   const keys = Object.keys(TOURS).sort((a, b) => b.length - a.length);
   const k = keys.find((key) => pathname === key || pathname.startsWith(key + "/"));
-  return k ? TOURS[k] : null;
+  return k ? TOURS[k] : fallbackTour(pathname);
 }
