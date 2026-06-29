@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Users, Target, Package, ShoppingCart, FileText, Wallet, UserCog,
   Plug, Settings as SettingsIcon, CreditCard, Lock, BarChart3, Scale, Phone, History,
   CalendarDays, Sparkles, Shuffle, Tags, AlertCircle, RotateCcw, Ticket, Trophy, Store,
-  Calculator, Bot, BookOpen, Repeat, BadgePercent, Percent, PieChart, Filter, Network, Send, Globe,
+  Calculator, Bot, BookOpen, Repeat, BadgePercent, Percent, PieChart, Filter, Network, Send, Globe, MessageCircle,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import {
@@ -35,6 +35,7 @@ const GROUPS: NavGroup[] = [
     { title: "Leads", url: "/app/leads", icon: Filter, feature: "module_outreach" },
     { title: "Templates", url: "/app/templates", icon: FileText, feature: "module_outreach" },
     { title: "Campanhas", url: "/app/campaigns", icon: Send, feature: "module_outreach" },
+    { title: "WhatsApp", url: "/app/whatsapp", icon: MessageCircle, feature: "module_outreach", adminOnly: true },
     { title: "Domínios de envio", url: "/app/outreach-domains", icon: Globe, feature: "module_outreach", adminOnly: true },
   ]},
   { label: "Atividade", gate: "all", items: [

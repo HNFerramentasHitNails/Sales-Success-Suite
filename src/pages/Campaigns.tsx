@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Send, Plus, Loader2, Play, Pause, Zap, ChevronRight, ChevronLeft, Mail, Trash2, CheckCircle2,
+  Send, Plus, Loader2, Play, Pause, Zap, ChevronRight, ChevronLeft, Mail, MessageCircle, Trash2, CheckCircle2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/contexts/OrganizationContext";
@@ -31,7 +31,8 @@ const STATUS_VARIANT: Record<string, "secondary" | "default" | "outline" | "dest
 
 const COUNTRIES = ["Portugal", "Brasil", "Estados Unidos", "Espanha", "Reino Unido", "México", "Colômbia", "Peru", "Chile", "Equador", "Venezuela", "Costa Rica", "República Dominicana", "El Salvador", "Guatemala", "Honduras", "Nicarágua"];
 
-type Step = { channel: "email"; template_id: string; delay_hours: number };
+type WaChannel = "email" | "whatsapp";
+type Step = { channel: WaChannel; template_id: string; delay_hours: number };
 
 export default function Campaigns() {
   const { activeOrg, role } = useOrganization();
@@ -40,6 +41,8 @@ export default function Campaigns() {
   const [rows, setRows] = useState<Campaign[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [emailTemplateIds, setEmailTemplateIds] = useState<Set<string>>(new Set());
+  const [whatsappTemplateIds, setWhatsappTemplateIds] = useState<Set<string>>(new Set());
+  const [channels, setChannels] = useState<{ email: boolean; whatsapp: boolean }>({ email: true, whatsapp: false });
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -61,11 +64,12 @@ export default function Campaigns() {
     const [{ data: camps }, { data: tpls }, { data: vars }] = await Promise.all([
       supabase.from("outreach_campaigns").select("*").eq("organization_id", activeOrg.id).order("created_at", { ascending: false }),
       supabase.from("outreach_templates").select("*").eq("organization_id", activeOrg.id).order("created_at", { ascending: false }),
-      supabase.from("outreach_template_variations").select("template_id, channel").eq("organization_id", activeOrg.id).eq("channel", "email"),
+      supabase.from("outreach_template_variations").select("template_id, channel").eq("organization_id", activeOrg.id),
     ]);
     setRows((camps ?? []) as Campaign[]);
     setTemplates((tpls ?? []) as Template[]);
-    setEmailTemplateIds(new Set((vars ?? []).map((v: any) => v.template_id)));
+    setEmailTemplateIds(new Set((vars ?? []).filter((v: any) => v.channel === "email").map((v: any) => v.template_id)));
+    setWhatsappTemplateIds(new Set((vars ?? []).filter((v: any) => v.channel === "whatsapp").map((v: any) => v.template_id)));
     // contagem de targets por campanha
     const ids = (camps ?? []).map((c: any) => c.id);
     if (ids.length) {
@@ -79,7 +83,8 @@ export default function Campaigns() {
 
   useEffect(() => { load(); }, [load]);
 
-  const emailTemplates = useMemo(() => templates.filter((t) => emailTemplateIds.has(t.id)), [templates, emailTemplateIds]);
+  const selectedChannels = (Object.keys(channels) as WaChannel[]).filter((c) => channels[c]);
+  const templatesForChannel = (ch: WaChannel) => templates.filter((t) => (ch === "email" ? emailTemplateIds : whatsappTemplateIds).has(t.id));
 
   const buildLeadQuery = useCallback(() => {
     let q = supabase.from("outreach_leads").select("id", { count: "exact" }).eq("organization_id", activeOrg!.id).is("deleted_at", null);
@@ -98,14 +103,22 @@ export default function Campaigns() {
 
   useEffect(() => { if (open && step === 2) refreshCount(); }, [open, step, refreshCount]);
 
+  // manter os passos com um canal válido quando os canais selecionados mudam
+  useEffect(() => {
+    if (!open) return;
+    setSteps((prev) => prev.map((s) => selectedChannels.includes(s.channel) ? s : { ...s, channel: (selectedChannels[0] ?? "email") as WaChannel, template_id: "" }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [channels.email, channels.whatsapp, open]);
+
   const openWizard = () => {
-    setStep(1); setName(""); setFilters({ status: "all", niche: "", country: "all", has_whatsapp: false });
+    setStep(1); setName(""); setChannels({ email: true, whatsapp: false });
+    setFilters({ status: "all", niche: "", country: "all", has_whatsapp: false });
     setAudienceCount(null); setSteps([{ channel: "email", template_id: "", delay_hours: 0 }]);
     setScheduleMode("immediate"); setScheduledAt(""); setOpen(true);
   };
 
   const canNext = () => {
-    if (step === 1) return name.trim().length > 0;
+    if (step === 1) return name.trim().length > 0 && selectedChannels.length > 0;
     if (step === 2) return (audienceCount ?? 0) > 0;
     if (step === 3) return steps.length > 0 && steps.every((s) => s.template_id);
     if (step === 4) return scheduleMode === "immediate" || !!scheduledAt;
@@ -119,7 +132,7 @@ export default function Campaigns() {
       const when = scheduleMode === "scheduled" && scheduledAt ? new Date(scheduledAt).toISOString() : new Date().toISOString();
       const status = asDraft ? "draft" : scheduleMode === "scheduled" ? "scheduled" : "running";
       const { data: camp, error } = await supabase.from("outreach_campaigns").insert({
-        organization_id: activeOrg.id, name: name.trim(), channels: ["email"],
+        organization_id: activeOrg.id, name: name.trim(), channels: selectedChannels,
         status, audience_filter: filters, steps, schedule_mode: scheduleMode,
         scheduled_at: scheduleMode === "scheduled" && scheduledAt ? new Date(scheduledAt).toISOString() : null,
       }).select("id").single();
@@ -272,9 +285,10 @@ export default function Campaigns() {
               </div>
               <div className="grid gap-1.5">
                 <Label>Canais</Label>
-                <div className="flex gap-3 text-sm">
-                  <label className="flex items-center gap-1.5"><Checkbox checked disabled /> <Mail className="h-4 w-4" /> Email</label>
-                  <span className="text-muted-foreground self-center">SMS e WhatsApp — em breve</span>
+                <div className="flex gap-4 text-sm">
+                  <label className="flex items-center gap-1.5"><Checkbox checked={channels.email} onCheckedChange={(v) => setChannels({ ...channels, email: !!v })} /> <Mail className="h-4 w-4" /> Email</label>
+                  <label className="flex items-center gap-1.5"><Checkbox checked={channels.whatsapp} onCheckedChange={(v) => setChannels({ ...channels, whatsapp: !!v })} /> <MessageCircle className="h-4 w-4" /> WhatsApp</label>
+                  <span className="text-muted-foreground self-center">SMS — em breve</span>
                 </div>
               </div>
             </div>
@@ -324,30 +338,41 @@ export default function Campaigns() {
           {step === 3 && (
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground">Define a sequência. O 1º passo dispara de imediato; os seguintes após o atraso indicado.</p>
-              {emailTemplates.length === 0 && (
-                <div className="rounded-md bg-destructive/10 text-destructive p-3 text-sm">Não há templates de email. Cria um em Templates primeiro.</div>
+              {selectedChannels.every((ch) => templatesForChannel(ch).length === 0) && (
+                <div className="rounded-md bg-destructive/10 text-destructive p-3 text-sm">Não há templates para os canais escolhidos. Cria um em Templates primeiro.</div>
               )}
-              {steps.map((s, i) => (
-                <div key={i} className="border rounded-md p-3 grid grid-cols-12 gap-2 items-end">
-                  <div className="col-span-1 text-sm font-semibold pt-6">#{i + 1}</div>
-                  <div className="col-span-6 grid gap-1.5">
-                    <Label className="text-xs">Template (email)</Label>
-                    <Select value={s.template_id} onValueChange={(v) => setSteps(steps.map((x, j) => j === i ? { ...x, template_id: v } : x))}>
-                      <SelectTrigger><SelectValue placeholder="Escolher…" /></SelectTrigger>
-                      <SelectContent>{emailTemplates.map((t) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent>
-                    </Select>
+              {steps.map((s, i) => {
+                const eff: WaChannel = selectedChannels.includes(s.channel) ? s.channel : (selectedChannels[0] ?? "email");
+                const opts = templatesForChannel(eff);
+                return (
+                  <div key={i} className="border rounded-md p-3 grid grid-cols-12 gap-2 items-end">
+                    <div className="col-span-1 text-sm font-semibold pt-6">#{i + 1}</div>
+                    <div className="col-span-3 grid gap-1.5">
+                      <Label className="text-xs">Canal</Label>
+                      <Select value={eff} onValueChange={(v) => setSteps(steps.map((x, j) => j === i ? { ...x, channel: v as WaChannel, template_id: "" } : x))}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>{selectedChannels.map((c) => <SelectItem key={c} value={c}>{c === "email" ? "Email" : "WhatsApp"}</SelectItem>)}</SelectContent>
+                      </Select>
+                    </div>
+                    <div className="col-span-4 grid gap-1.5">
+                      <Label className="text-xs">Template</Label>
+                      <Select value={s.template_id} onValueChange={(v) => setSteps(steps.map((x, j) => j === i ? { ...x, template_id: v } : x))}>
+                        <SelectTrigger><SelectValue placeholder="Escolher…" /></SelectTrigger>
+                        <SelectContent>{opts.map((t) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent>
+                      </Select>
+                    </div>
+                    <div className="col-span-2 grid gap-1.5">
+                      <Label className="text-xs">Atraso (h)</Label>
+                      <Input type="number" min={0} value={s.delay_hours} disabled={i === 0}
+                        onChange={(e) => setSteps(steps.map((x, j) => j === i ? { ...x, delay_hours: Math.max(0, Number(e.target.value)) } : x))} />
+                    </div>
+                    <div className="col-span-2">
+                      {steps.length > 1 && <Button size="sm" variant="ghost" onClick={() => setSteps(steps.filter((_, j) => j !== i))}><Trash2 className="h-4 w-4" /></Button>}
+                    </div>
                   </div>
-                  <div className="col-span-3 grid gap-1.5">
-                    <Label className="text-xs">Atraso (horas)</Label>
-                    <Input type="number" min={0} value={s.delay_hours} disabled={i === 0}
-                      onChange={(e) => setSteps(steps.map((x, j) => j === i ? { ...x, delay_hours: Math.max(0, Number(e.target.value)) } : x))} />
-                  </div>
-                  <div className="col-span-2">
-                    {steps.length > 1 && <Button size="sm" variant="ghost" onClick={() => setSteps(steps.filter((_, j) => j !== i))}><Trash2 className="h-4 w-4" /></Button>}
-                  </div>
-                </div>
-              ))}
-              <Button variant="outline" size="sm" onClick={() => setSteps([...steps, { channel: "email", template_id: "", delay_hours: 24 }])}>
+                );
+              })}
+              <Button variant="outline" size="sm" onClick={() => setSteps([...steps, { channel: (selectedChannels[0] ?? "email") as WaChannel, template_id: "", delay_hours: 24 }])}>
                 <Plus className="h-4 w-4 mr-1" /> Adicionar passo
               </Button>
             </div>

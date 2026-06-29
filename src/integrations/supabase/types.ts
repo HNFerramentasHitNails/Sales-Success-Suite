@@ -2791,6 +2791,85 @@ export type Database = {
           },
         ]
       }
+      outreach_whatsapp_instances: {
+        Row: {
+          connected_at: string | null
+          created_at: string
+          daily_sent: number
+          day: string | null
+          id: string
+          name: string
+          organization_id: string
+          phone: string | null
+          skip_warmup: boolean
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          connected_at?: string | null
+          created_at?: string
+          daily_sent?: number
+          day?: string | null
+          id?: string
+          name: string
+          organization_id: string
+          phone?: string | null
+          skip_warmup?: boolean
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          connected_at?: string | null
+          created_at?: string
+          daily_sent?: number
+          day?: string | null
+          id?: string
+          name?: string
+          organization_id?: string
+          phone?: string | null
+          skip_warmup?: boolean
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "outreach_whatsapp_instances_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      outreach_whatsapp_settings: {
+        Row: {
+          api_key: string | null
+          base_url: string
+          organization_id: string
+          updated_at: string
+        }
+        Insert: {
+          api_key?: string | null
+          base_url?: string
+          organization_id: string
+          updated_at?: string
+        }
+        Update: {
+          api_key?: string | null
+          base_url?: string
+          organization_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "outreach_whatsapp_settings_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plan_features: {
         Row: {
           created_at: string
@@ -4482,6 +4561,7 @@ export type Database = {
       }
       org_within_user_limit: { Args: { _org_id: string }; Returns: boolean }
       outreach_can_write: { Args: { _org_id: string }; Returns: boolean }
+      outreach_cron_tick: { Args: never; Returns: undefined }
       preview_order_vat: {
         Args: {
           p_customer_id: string
