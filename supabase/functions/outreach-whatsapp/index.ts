@@ -26,6 +26,14 @@ function pickQr(d: any): string | null {
 function pickState(d: any): string {
   return d?.instance?.state ?? d?.state ?? "connecting";
 }
+function pickNumber(d: any): string | null {
+  const arr = Array.isArray(d) ? d : (d ? [d] : []);
+  for (const it of arr) {
+    const jid = it?.ownerJid ?? it?.instance?.ownerJid ?? it?.owner ?? it?.instance?.owner ?? it?.number;
+    if (typeof jid === "string" && jid.length) return jid.split("@")[0];
+  }
+  return null;
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -118,10 +126,16 @@ Deno.serve(async (req) => {
       if (!inst) return json({ error: "not_found" }, 404);
       const r = await evo(base, key, `/instance/connectionState/${encodeURIComponent(inst.name)}`, "GET");
       const state = pickState(r.data);
-      const patch: Record<string, unknown> = { status: state === "open" ? "open" : state === "close" ? "close" : "connecting" };
-      if (state === "open" && !inst.connected_at) patch.connected_at = new Date().toISOString();
+      const status = state === "open" ? "open" : state === "close" ? "close" : "connecting";
+      const patch: Record<string, unknown> = { status };
+      if (status === "open" && !inst.connected_at) patch.connected_at = new Date().toISOString();
+      if (status === "open" && !inst.phone) {
+        const f = await evo(base, key, `/instance/fetchInstances?instanceName=${encodeURIComponent(inst.name)}`, "GET").catch(() => ({ ok: false, data: null }));
+        const num = pickNumber((f as any).data);
+        if (num) patch.phone = num;
+      }
       await admin.from("outreach_whatsapp_instances").update(patch).eq("id", inst.id);
-      return json({ status: patch.status });
+      return json({ status, phone: patch.phone ?? inst.phone ?? null });
     }
 
     if (action === "set_skip_warmup") {

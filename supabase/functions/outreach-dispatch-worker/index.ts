@@ -124,9 +124,12 @@ async function processOrg(admin: any, orgId: string, resendKey: string, fallback
   const domain = await activeDomain(admin, orgId);
   const from = domain ? `${domain.from_name || "Outreach"} <outreach@${domain.domain}>` : fallbackFrom;
 
-  // whatsapp (lazy)
+  // whatsapp — config + TODAS as instâncias ligadas (rotação)
   const { data: waCfg } = await admin.from("outreach_whatsapp_settings").select("*").eq("organization_id", orgId).maybeSingle();
-  const { data: waInst } = await admin.from("outreach_whatsapp_instances").select("*").eq("organization_id", orgId).eq("status", "open").order("created_at", { ascending: true }).limit(1).maybeSingle();
+  const { data: waInsts } = await admin.from("outreach_whatsapp_instances").select("*").eq("organization_id", orgId).eq("status", "open").order("created_at", { ascending: true });
+  for (const wi of waInsts ?? []) {
+    if (wi.day !== today(now)) { wi.day = today(now); wi.daily_sent = 0; await admin.from("outreach_whatsapp_instances").update({ day: wi.day, daily_sent: 0 }).eq("id", wi.id); }
+  }
   let waState: any = null;
 
   const { data: targets } = await admin.from("outreach_campaign_targets")
@@ -195,16 +198,16 @@ async function processOrg(admin: any, orgId: string, resendKey: string, fallback
 
     // ---------- WHATSAPP ----------
     if (channel === "whatsapp") {
-      if (!waCfg?.api_key || !waInst) { await logMsg("failed", { error: waCfg?.api_key ? "no_connected_instance" : "whatsapp_not_configured" }); await advance({ last_channel: "whatsapp" }); continue; }
+      if (!waCfg?.api_key || !(waInsts && waInsts.length)) { await logMsg("failed", { error: waCfg?.api_key ? "no_connected_instance" : "whatsapp_not_configured" }); await advance({ last_channel: "whatsapp" }); continue; }
       if (!lead.phone) { await logMsg("failed", { error: "no_phone" }); await advance({ last_channel: "whatsapp" }); continue; }
       if (!waState) waState = await getChannelState(admin, orgId, "whatsapp", now);
       if (waState.status === "circuit_open") continue;
       if (cap != null && waState.weekly_sent >= cap) { await admin.from("outreach_campaigns").update({ status: "waiting_for_quota" }).eq("id", camp.id); pausedForQuota.add(camp.id); continue; }
 
-      // rollover diário da instância + limite de warmup
-      if (waInst.day !== today(now)) { waInst.day = today(now); waInst.daily_sent = 0; await admin.from("outreach_whatsapp_instances").update({ day: waInst.day, daily_sent: 0 }).eq("id", waInst.id); }
-      const wlimit = warmupLimit(waInst, now);
-      if (waInst.daily_sent >= wlimit) { await retryLater(6); continue; } // limite de aquecimento atingido hoje
+      // rotação: escolher a instância ligada MENOS usada que ainda tem orçamento de warmup hoje
+      const eligible = waInsts.filter((wi: any) => wi.daily_sent < warmupLimit(wi, now));
+      if (eligible.length === 0) { await retryLater(6); continue; } // todas no limite de aquecimento
+      const waInst = eligible.reduce((a: any, b: any) => (a.daily_sent <= b.daily_sent ? a : b));
 
       const { data: vars } = await admin.from("outreach_template_variations").select("*").eq("template_id", step.template_id).eq("channel", "whatsapp");
       const variation = pickVariation(vars ?? []);
