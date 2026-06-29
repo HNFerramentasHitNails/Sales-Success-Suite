@@ -69,7 +69,6 @@ export default function AppSidebar() {
         </div>
 
         {groups.map((group) => {
-          const hasActive = group.items.some((it) => isActive(it.url));
           // sidebar em modo ícone: lista plana (sem colapsáveis)
           if (collapsed) {
             return (
@@ -83,7 +82,7 @@ export default function AppSidebar() {
           return (
             <Collapsible
               key={group.label}
-              open={openMap[group.label] ?? hasActive}
+              open={openMap[group.label] ?? true}
               onOpenChange={(o) => setOpenMap((m) => ({ ...m, [group.label]: o }))}
               className="group/collapsible"
             >
