@@ -2504,6 +2504,60 @@ export type Database = {
           },
         ]
       }
+      outreach_inbox_messages: {
+        Row: {
+          author_user_id: string | null
+          body: string
+          channel: string
+          created_at: string
+          direction: string
+          id: string
+          lead_id: string
+          organization_id: string
+          provider_message_id: string | null
+          read: boolean
+        }
+        Insert: {
+          author_user_id?: string | null
+          body?: string
+          channel?: string
+          created_at?: string
+          direction: string
+          id?: string
+          lead_id: string
+          organization_id: string
+          provider_message_id?: string | null
+          read?: boolean
+        }
+        Update: {
+          author_user_id?: string | null
+          body?: string
+          channel?: string
+          created_at?: string
+          direction?: string
+          id?: string
+          lead_id?: string
+          organization_id?: string
+          provider_message_id?: string | null
+          read?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "outreach_inbox_messages_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "outreach_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "outreach_inbox_messages_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       outreach_leads: {
         Row: {
           city: string | null

@@ -13,6 +13,17 @@ function digits(s: string): string {
   return o;
 }
 
+function extractText(msg: any): string {
+  if (!msg) return "";
+  return msg.conversation
+    ?? msg.extendedTextMessage?.text
+    ?? msg.imageMessage?.caption
+    ?? msg.videoMessage?.caption
+    ?? msg.buttonsResponseMessage?.selectedDisplayText
+    ?? msg.listResponseMessage?.title
+    ?? "";
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
@@ -57,13 +68,34 @@ Deno.serve(async (req) => {
         const phone = digits(jid.split("@")[0]);
         if (phone.length < 6) continue;
         const last9 = phone.slice(-9);
+        const providerId: string | null = key?.id ?? null;
+        const text = extractText(m?.message);
 
-        // encontrar lead por telefone na org
+        // dedup por id de mensagem
+        if (providerId) {
+          const { data: existing } = await admin.from("outreach_inbox_messages").select("id").eq("provider_message_id", providerId).maybeSingle();
+          if (existing) continue;
+        }
+
+        // encontrar lead por telefone na org; se não existir, criar
         const { data: leads } = await admin.from("outreach_leads")
           .select("id, status").eq("organization_id", orgId).is("deleted_at", null)
           .ilike("phone", `%${last9}%`).limit(1);
-        const lead = leads?.[0];
+        let lead = leads?.[0];
+        if (!lead) {
+          const { data: created } = await admin.from("outreach_leads").insert({
+            organization_id: orgId, name: m?.pushName || `+${phone}`, phone: `+${phone}`,
+            has_whatsapp: true, source: "manual", status: "respondeu",
+          }).select("id, status").single();
+          lead = created ?? undefined;
+        }
         if (!lead) continue;
+
+        // guardar a mensagem na inbox
+        await admin.from("outreach_inbox_messages").insert({
+          organization_id: orgId, lead_id: lead.id, channel: "whatsapp",
+          direction: "in", body: text, provider_message_id: providerId, read: false,
+        });
 
         if (lead.status !== "respondeu") await admin.from("outreach_leads").update({ status: "respondeu" }).eq("id", lead.id);
         // parar sequências ativas deste lead
