@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
-type Provider = "lovable" | "anthropic" | "openai";
+type Provider = "deepseek" | "anthropic" | "openai";
 
 export default function AiSettings() {
   const { activeOrg, isAdmin, role } = useOrganization();
@@ -22,7 +22,7 @@ export default function AiSettings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
-  const [provider, setProvider] = useState<Provider>("lovable");
+  const [provider, setProvider] = useState<Provider>("deepseek");
   const [model, setModel] = useState("");
   const [apiKey, setApiKey] = useState("");
   const [hasKey, setHasKey] = useState(false);
@@ -37,7 +37,7 @@ export default function AiSettings() {
         toast.error("Erro ao carregar configuração de IA");
       } else if (data && data.length > 0) {
         const row = data[0] as { provider: string; model: string | null; has_key: boolean };
-        setProvider((row.provider as Provider) || "lovable");
+        setProvider(((row.provider as Provider) || "deepseek"));
         setModel(row.model ?? "");
         setHasKey(!!row.has_key);
       }
@@ -47,12 +47,12 @@ export default function AiSettings() {
 
   if (!canManage) return <Navigate to="/app/dashboard" replace />;
 
-  const placeholder =
-    provider === "lovable"
-      ? "google/gemini-2.5-flash"
-      : provider === "anthropic"
+  const modelPlaceholder =
+    provider === "anthropic"
       ? "claude-opus-4-8"
-      : "gpt-4o-mini";
+      : provider === "openai"
+      ? "gpt-4o-mini"
+      : "deepseek-v4-flash";
 
   const handleSave = async () => {
     if (!activeOrg?.id) return;
@@ -95,7 +95,7 @@ export default function AiSettings() {
       setTestReply("Configura primeiro a chave de IA.");
       return;
     }
-    if (res?.error === "rate_limited" || res?.error === "credits_exhausted" || res?.error === "provider_error") {
+    if (res?.error === "rate_limited" || res?.error === "provider_error") {
       toast.error(`Erro do fornecedor: ${res.message ?? ""}`);
       setTestReply(`Erro do fornecedor: ${res.message ?? "desconhecido"}`);
       return;
@@ -104,11 +104,13 @@ export default function AiSettings() {
     toast.success("Ligação OK");
   };
 
+  const needsKey = provider === "anthropic" || provider === "openai";
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="Configuração de IA"
-        description="Por defeito usas a IA incluída no Lovable. Podes também ligar uma chave própria de Anthropic ou OpenAI."
+        description="Por defeito usas o DeepSeek V4 Flash. Podes mudar para Anthropic (Claude) ou OpenAI quando quiseres."
         icon={<Bot className="h-6 w-6" />}
       />
 
@@ -123,8 +125,8 @@ export default function AiSettings() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             Fornecedor de IA
-            {provider !== "lovable" && hasKey && <Badge variant="secondary">Chave configurada</Badge>}
-            {provider === "lovable" && <Badge variant="secondary">Pronto a usar</Badge>}
+            {provider === "deepseek" && !hasKey && <Badge variant="secondary">Pronto a usar</Badge>}
+            {hasKey && <Badge variant="secondary">Chave configurada</Badge>}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -136,41 +138,58 @@ export default function AiSettings() {
             <>
               <div className="grid gap-2 max-w-sm">
                 <Label>Fornecedor</Label>
-                <Select value={provider} onValueChange={(v) => setProvider(v as Provider)}>
+                <Select value={provider} onValueChange={(v) => { setProvider(v as Provider); setModel(""); }}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="lovable">Lovable AI (incluído)</SelectItem>
-                    <SelectItem value="anthropic">Anthropic (chave própria)</SelectItem>
+                    <SelectItem value="deepseek">DeepSeek (incluído)</SelectItem>
+                    <SelectItem value="anthropic">Anthropic — Claude (chave própria)</SelectItem>
                     <SelectItem value="openai">OpenAI (chave própria)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
-              {provider === "lovable" && (
+              {provider === "deepseek" && (
                 <Alert>
                   <AlertDescription>
-                    Sem configuração necessária — usa a IA incluída na plataforma.
+                    Sem configuração necessária — usa o DeepSeek incluído na plataforma. Podes opcionalmente fornecer a tua própria chave DeepSeek.
                   </AlertDescription>
                 </Alert>
               )}
 
               <div className="grid gap-2 max-w-sm">
                 <Label>Modelo</Label>
-                {provider === "lovable" ? (
+                {provider === "deepseek" ? (
                   <>
-                    <Select value={model || "google/gemini-2.5-flash"} onValueChange={setModel}>
+                    <Select value={model || "deepseek-v4-flash"} onValueChange={setModel}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="google/gemini-2.5-flash">google/gemini-2.5-flash (rápido)</SelectItem>
-                        <SelectItem value="google/gemini-2.5-pro">google/gemini-2.5-pro (mais capaz)</SelectItem>
+                        <SelectItem value="deepseek-v4-flash">deepseek-v4-flash (rápido, recomendado)</SelectItem>
+                        <SelectItem value="deepseek-chat">deepseek-chat (V3)</SelectItem>
+                        <SelectItem value="deepseek-reasoner">deepseek-reasoner (R1, raciocínio)</SelectItem>
                       </SelectContent>
                     </Select>
                     <p className="text-xs text-muted-foreground">
-                      Por defeito: <code>google/gemini-2.5-flash</code>
+                      Por defeito: <code>deepseek-v4-flash</code>
+                    </p>
+                  </>
+                ) : provider === "anthropic" ? (
+                  <>
+                    <Select value={model || "claude-opus-4-8"} onValueChange={setModel}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="claude-opus-4-8">claude-opus-4-8 (mais capaz)</SelectItem>
+                        <SelectItem value="claude-sonnet-4-6">claude-sonnet-4-6 (equilibrado)</SelectItem>
+                        <SelectItem value="claude-haiku-4-5-20251001">claude-haiku-4-5 (rápido)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      Por defeito: <code>claude-opus-4-8</code>
                     </p>
                   </>
                 ) : (
@@ -178,18 +197,21 @@ export default function AiSettings() {
                     <Input
                       value={model}
                       onChange={(e) => setModel(e.target.value)}
-                      placeholder={placeholder}
+                      placeholder={modelPlaceholder}
                     />
                     <p className="text-xs text-muted-foreground">
-                      Sugestão: <code>{placeholder}</code>
+                      Sugestão: <code>{modelPlaceholder}</code>
                     </p>
                   </>
                 )}
               </div>
 
-              {provider !== "lovable" && (
+              {(needsKey || provider === "deepseek") && (
                 <div className="grid gap-2 max-w-sm">
-                  <Label>Chave de API</Label>
+                  <Label>
+                    Chave de API
+                    {!needsKey && <span className="text-muted-foreground ml-1 text-xs">(opcional — sobrepõe chave global)</span>}
+                  </Label>
                   <Input
                     type="password"
                     value={apiKey}

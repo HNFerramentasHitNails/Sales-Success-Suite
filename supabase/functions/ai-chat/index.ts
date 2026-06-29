@@ -20,37 +20,35 @@ Analisa o pipeline e o histórico fornecidos no contexto: identifica riscos, opo
 Sê analítico, baseado em dados, e estrutura sempre a resposta em markdown com secções claras.`,
 };
 
+function errResp(body: unknown, status = 500) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY missing");
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const DEEPSEEK_API_KEY = Deno.env.get("DEEPSEEK_API_KEY") ?? "";
 
     const authHeader = req.headers.get("Authorization") ?? "";
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       global: { headers: { Authorization: authHeader } },
     });
+    const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) {
-      return new Response(JSON.stringify({ error: "unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    if (!userData.user) return errResp({ error: "unauthorized" }, 401);
 
     const { conversationId, message } = await req.json();
-    if (!conversationId || !message) {
-      return new Response(JSON.stringify({ error: "missing_params" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    if (!conversationId || !message) return errResp({ error: "missing_params" }, 400);
 
-    // Load conversation + messages
+    // Load conversation
     const { data: conv, error: convErr } = await supabase
       .from("ai_conversations")
       .select("id, agent, organization_id, prospect_id, customer_id")
@@ -118,43 +116,76 @@ Deno.serve(async (req) => {
       .order("created_at", { ascending: true })
       .limit(40);
 
+    const systemContent = SYSTEM_PROMPTS[agent] + contextBlock;
     const messages = [
-      { role: "system", content: SYSTEM_PROMPTS[agent] + contextBlock },
+      { role: "system", content: systemContent },
       ...(history ?? []).map((m) => ({ role: m.role, content: m.content })),
     ];
 
-    const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    // Load AI provider settings
+    const { data: aiSettings } = await admin
+      .from("ai_provider_settings")
+      .select("provider, model, api_key")
+      .eq("organization_id", conv.organization_id)
+      .maybeSingle();
+
+    const aiProvider = aiSettings?.provider ?? "deepseek";
+    const aiModel = aiSettings?.model || (aiProvider === "anthropic" ? "claude-opus-4-8" : "deepseek-v4-flash");
+    const orgKey = aiSettings?.api_key ?? "";
+    const aiKey = orgKey.trim() || DEEPSEEK_API_KEY;
+
+    // Anthropic: non-streaming path
+    if (aiProvider === "anthropic") {
+      if (!orgKey.trim()) return errResp({ error: "ai_not_configured" }, 400);
+      const chatMessages = messages.filter((m) => m.role !== "system");
+      const anthropicRes = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "x-api-key": orgKey,
+          "anthropic-version": "2023-06-01",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ model: aiModel, max_tokens: 2048, system: systemContent, messages: chatMessages }),
+      });
+      const anthropicData = await anthropicRes.json().catch(() => ({}));
+      if (!anthropicRes.ok) {
+        console.error("Anthropic error", anthropicRes.status, anthropicData);
+        return errResp({ error: "ai_error" }, 500);
+      }
+      const assistantText = (anthropicData as any)?.content?.find((b: any) => b?.type === "text")?.text ?? "";
+      if (assistantText.trim()) {
+        await supabase.from("ai_messages").insert({
+          conversation_id: conversationId,
+          organization_id: conv.organization_id,
+          role: "assistant",
+          content: assistantText,
+        });
+        await supabase.from("ai_conversations").update({ updated_at: new Date().toISOString() }).eq("id", conversationId);
+      }
+      // Emit as fake SSE so client code works unchanged
+      const payload =
+        `data: ${JSON.stringify({ choices: [{ delta: { content: assistantText } }] })}\n\n` +
+        `data: [DONE]\n\n`;
+      return new Response(payload, { headers: { ...corsHeaders, "Content-Type": "text/event-stream" } });
+    }
+
+    // DeepSeek / OpenAI: native streaming (OpenAI-compatible)
+    const endpoint =
+      aiProvider === "openai"
+        ? "https://api.openai.com/v1/chat/completions"
+        : "https://api.deepseek.com/v1/chat/completions";
+
+    const aiResp = await fetch(endpoint, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages,
-        stream: true,
-      }),
+      headers: { Authorization: `Bearer ${aiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ model: aiModel, messages, stream: true }),
     });
 
     if (!aiResp.ok) {
-      if (aiResp.status === 429) {
-        return new Response(JSON.stringify({ error: "rate_limited" }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (aiResp.status === 402) {
-        return new Response(JSON.stringify({ error: "payment_required" }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+      if (aiResp.status === 429) return errResp({ error: "rate_limited" }, 429);
       const t = await aiResp.text();
       console.error("AI gateway error", aiResp.status, t);
-      return new Response(JSON.stringify({ error: "ai_error" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return errResp({ error: "ai_error" }, 500);
     }
 
     // Tee the stream: forward to client + capture full text to persist

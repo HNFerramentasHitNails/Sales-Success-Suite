@@ -92,15 +92,14 @@ async function callOpenAI(apiKey: string, model: string, system: string, message
   }
 }
 
-async function callLovable(model: string, system: string, messages: unknown[]) {
-  const apiKey = Deno.env.get("LOVABLE_API_KEY");
+async function callDeepSeek(apiKey: string, model: string, system: string, messages: unknown[]) {
   if (!apiKey) {
-    return { error: "provider_error", message: "LOVABLE_API_KEY não configurado no servidor." };
+    return { error: "provider_error", message: "DEEPSEEK_API_KEY não configurado no servidor." };
   }
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), 30_000);
   try {
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const res = await fetch("https://api.deepseek.com/v1/chat/completions", {
       method: "POST",
       signal: ctrl.signal,
       headers: {
@@ -108,7 +107,7 @@ async function callLovable(model: string, system: string, messages: unknown[]) {
         "content-type": "application/json",
       },
       body: JSON.stringify({
-        model: model || "google/gemini-2.5-flash",
+        model: model || "deepseek-v4-flash",
         max_tokens: 1024,
         temperature: 0.7,
         messages: [{ role: "system", content: system }, ...(messages as any[])],
@@ -116,9 +115,6 @@ async function callLovable(model: string, system: string, messages: unknown[]) {
     });
     if (res.status === 429) {
       return { error: "rate_limited", message: "Limite de pedidos de IA atingido. Tenta novamente daqui a pouco." };
-    }
-    if (res.status === 402) {
-      return { error: "credits_exhausted", message: "Créditos de IA do Lovable esgotados. Adiciona créditos no workspace ou configura uma chave própria (Anthropic/OpenAI)." };
     }
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
@@ -218,31 +214,28 @@ Deno.serve(async (req) => {
       .filter((m) => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string")
       .map((m) => ({ role: m.role, content: m.content }));
 
-    // Dispatch: sem linha OU provider='lovable' → Lovable AI (sempre disponível)
-    const provider = settings?.provider ?? "lovable";
+    // Determinar provider e chave
+    const provider = settings?.provider ?? "deepseek";
     const model = settings?.model ?? "";
+    const orgKey = settings?.api_key ?? "";
 
     let result: { reply?: string; error?: string; message?: string };
-    if (provider === "lovable" || !settings) {
-      result = await callLovable(model, system, safeMessages);
+
+    if (provider === "anthropic") {
+      if (!orgKey.trim()) return jsonResponse({ error: "ai_not_configured" });
+      const r = await callAnthropic(orgKey, model, system, safeMessages);
+      result = "error" in r && !r.reply ? { error: "provider_error", message: r.error } : { reply: r.reply };
     } else if (provider === "openai") {
-      if (!settings.api_key || !settings.api_key.trim()) {
-        return jsonResponse({ error: "ai_not_configured" });
-      }
-      const r = await callOpenAI(settings.api_key, model, system, safeMessages);
-      result = "error" in r ? { error: "provider_error", message: r.error } : { reply: r.reply };
-    } else if (provider === "anthropic") {
-      if (!settings.api_key || !settings.api_key.trim()) {
-        return jsonResponse({ error: "ai_not_configured" });
-      }
-      const r = await callAnthropic(settings.api_key, model, system, safeMessages);
+      if (!orgKey.trim()) return jsonResponse({ error: "ai_not_configured" });
+      const r = await callOpenAI(orgKey, model, system, safeMessages);
       result = "error" in r ? { error: "provider_error", message: r.error } : { reply: r.reply };
     } else {
-      return jsonResponse({ error: "invalid_provider" }, 400);
+      // deepseek (default) — usa chave da org se tiver, senão chave global
+      const apiKey = orgKey.trim() || (Deno.env.get("DEEPSEEK_API_KEY") ?? "");
+      result = await callDeepSeek(apiKey, model, system, safeMessages);
     }
 
     if (result.error) {
-      // Nunca incluir qualquer chave na resposta nem em logs
       console.error(`ai-agent ${result.error} (${provider})`);
       return jsonResponse({ error: result.error, message: result.message });
     }

@@ -21,26 +21,30 @@ Sê analítico, baseado em dados, e estrutura sempre a resposta em markdown com 
 
 function safe(v: unknown) { try { return JSON.stringify(v); } catch { return "null"; } }
 
+function errResp(body: unknown, status = 500) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY missing");
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const DEEPSEEK_API_KEY = Deno.env.get("DEEPSEEK_API_KEY") ?? "";
 
     const authHeader = req.headers.get("Authorization") ?? "";
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       global: { headers: { Authorization: authHeader } },
     });
+    const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     const { data: userData } = await supabase.auth.getUser();
     const user = userData.user;
-    if (!user) {
-      return new Response(JSON.stringify({ error: "unauthorized" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    if (!user) return errResp({ error: "unauthorized" }, 401);
 
     const body = await req.json().catch(() => ({}));
     const agent_type = body.agent_type as AgentType;
@@ -50,9 +54,7 @@ Deno.serve(async (req) => {
     const prospect_id = body.prospect_id as string | undefined;
 
     if (!agent_type || !["sales", "trainer", "strategist"].includes(agent_type) || !message.trim()) {
-      return new Response(JSON.stringify({ error: "missing_params" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return errResp({ error: "missing_params" }, 400);
     }
 
     // Resolve organization
@@ -64,13 +66,8 @@ Deno.serve(async (req) => {
       .limit(1)
       .maybeSingle();
     const organizationId = memb?.organization_id;
-    if (!organizationId) {
-      return new Response(JSON.stringify({ error: "no_organization" }), {
-        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    if (!organizationId) return errResp({ error: "no_organization" }, 403);
 
-    // Map agent_type to legacy ai_conversations.agent enum used by AgentChat
     const agentColumn = agent_type === "sales" ? "sales_agent" : agent_type;
 
     // Ensure conversation exists
@@ -99,7 +96,7 @@ Deno.serve(async (req) => {
       content: message,
     });
 
-    // Load conversation context (customer/prospect ids from conv if not passed)
+    // Load linked entities from conversation
     const { data: conv } = await supabase
       .from("ai_conversations")
       .select("customer_id, prospect_id")
@@ -137,9 +134,7 @@ Deno.serve(async (req) => {
           .maybeSingle();
         if (cust) {
           contextBlock += `\n\n**Cliente**: ${safe(cust)}`;
-          if (cust.disc_profile) {
-            contextBlock += `\n\n**Perfil DISC do cliente**: ${safe(cust.disc_profile)}`;
-          }
+          if (cust.disc_profile) contextBlock += `\n\n**Perfil DISC do cliente**: ${safe(cust.disc_profile)}`;
           const { data: recentInv } = await supabase
             .from("invoices")
             .select("number, issue_date, total, status")
@@ -157,8 +152,7 @@ Deno.serve(async (req) => {
         }
       }
       if (linkedProspectId) {
-        const { data: pr } = await supabase
-          .from("prospects").select("*").eq("id", linkedProspectId).maybeSingle();
+        const { data: pr } = await supabase.from("prospects").select("*").eq("id", linkedProspectId).maybeSingle();
         if (pr) contextBlock += `\n\n**Prospect**: ${safe(pr)}`;
       }
       const { data: knowledge } = await supabase
@@ -183,7 +177,6 @@ Deno.serve(async (req) => {
     }
 
     if (agent_type === "strategist") {
-      // Revenue by product category (last 365 days)
       const { data: invItems } = await supabase
         .from("invoice_items")
         .select("line_total, products(category, name), invoices!inner(issue_date, status, organization_id, customer_id)")
@@ -201,15 +194,15 @@ Deno.serve(async (req) => {
         const cid = r.invoices?.customer_id;
         if (cid) byCustomer[cid] = (byCustomer[cid] ?? 0) + Number(r.line_total ?? 0);
       }
-      const topProducts = Object.entries(byProduct).sort((a,b)=>b[1]-a[1]).slice(0,10);
-      const topCustomerIds = Object.entries(byCustomer).sort((a,b)=>b[1]-a[1]).slice(0,10);
+      const topProducts = Object.entries(byProduct).sort((a, b) => b[1] - a[1]).slice(0, 10);
+      const topCustomerIds = Object.entries(byCustomer).sort((a, b) => b[1] - a[1]).slice(0, 10);
       let topCustomers: any[] = [];
       if (topCustomerIds.length) {
         const { data: cs } = await supabase
           .from("customers")
           .select("id, name, rfm_segment, ltv")
-          .in("id", topCustomerIds.map(([id])=>id));
-        topCustomers = (cs ?? []).map(c => ({ ...c, revenue: byCustomer[c.id] }));
+          .in("id", topCustomerIds.map(([id]) => id));
+        topCustomers = (cs ?? []).map((c) => ({ ...c, revenue: byCustomer[c.id] }));
       }
       const { data: pipeline } = await supabase
         .from("prospects")
@@ -242,35 +235,79 @@ Deno.serve(async (req) => {
       ...(history ?? []).map((m) => ({ role: m.role, content: m.content })),
     ];
 
-    const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    // Load AI provider settings (via admin to access api_key)
+    const { data: aiSettings } = await admin
+      .from("ai_provider_settings")
+      .select("provider, model, api_key")
+      .eq("organization_id", organizationId)
+      .maybeSingle();
+
+    const aiProvider = aiSettings?.provider ?? "deepseek";
+    const aiModel = aiSettings?.model || (aiProvider === "anthropic" ? "claude-opus-4-8" : "deepseek-v4-flash");
+    const orgKey = aiSettings?.api_key ?? "";
+    const aiKey = orgKey.trim() || DEEPSEEK_API_KEY;
+
+    const convId = conversation_id;
+
+    // Anthropic: non-streaming path, emit as fake SSE
+    if (aiProvider === "anthropic") {
+      if (!orgKey.trim()) return errResp({ error: "ai_not_configured" }, 400);
+      const chatMessages = messages.filter((m) => m.role !== "system");
+      const anthropicRes = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "x-api-key": orgKey,
+          "anthropic-version": "2023-06-01",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ model: aiModel, max_tokens: 2048, system: systemPrompt, messages: chatMessages }),
+      });
+      const anthropicData = await anthropicRes.json().catch(() => ({}));
+      if (!anthropicRes.ok) {
+        console.error("Anthropic error", anthropicRes.status, anthropicData);
+        return errResp({ error: "Erro do serviço de IA." }, 500);
+      }
+      const assistantText = (anthropicData as any)?.content?.find((b: any) => b?.type === "text")?.text ?? "";
+      if (assistantText.trim()) {
+        await supabase.from("ai_messages").insert({
+          conversation_id: convId,
+          organization_id: organizationId,
+          role: "assistant",
+          content: assistantText,
+        });
+        await supabase.from("ai_conversations").update({ updated_at: new Date().toISOString() }).eq("id", convId);
+      }
+      const payload =
+        `event: meta\ndata: ${JSON.stringify({ conversation_id: convId })}\n\n` +
+        `data: ${JSON.stringify({ choices: [{ delta: { content: assistantText } }] })}\n\n` +
+        `data: [DONE]\n\n`;
+      return new Response(payload, { headers: { ...corsHeaders, "Content-Type": "text/event-stream" } });
+    }
+
+    // DeepSeek / OpenAI: native streaming (OpenAI-compatible)
+    const endpoint =
+      aiProvider === "openai"
+        ? "https://api.openai.com/v1/chat/completions"
+        : "https://api.deepseek.com/v1/chat/completions";
+
+    const aiResp = await fetch(endpoint, {
       method: "POST",
-      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ model: "google/gemini-2.5-flash", messages, stream: true }),
+      headers: { Authorization: `Bearer ${aiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ model: aiModel, messages, stream: true }),
     });
 
     if (!aiResp.ok) {
       if (aiResp.status === 429) {
-        return new Response(JSON.stringify({ error: "Limite de pedidos atingido. Tenta novamente em instantes." }), {
-          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (aiResp.status === 402) {
-        return new Response(JSON.stringify({ error: "Sem créditos de IA. Adiciona créditos no espaço de trabalho." }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return errResp({ error: "Limite de pedidos atingido. Tenta novamente em instantes." }, 429);
       }
       const t = await aiResp.text();
       console.error("AI gateway error", aiResp.status, t);
-      return new Response(JSON.stringify({ error: "Erro do serviço de IA." }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return errResp({ error: "Erro do serviço de IA." }, 500);
     }
 
     let assistantText = "";
-    const convId = conversation_id;
     const stream = new ReadableStream({
       async start(controller) {
-        // Send conversation id as first SSE event so client can pick it up for new chats
         controller.enqueue(new TextEncoder().encode(`event: meta\ndata: ${JSON.stringify({ conversation_id: convId })}\n\n`));
         const reader = aiResp.body!.getReader();
         const decoder = new TextDecoder();
