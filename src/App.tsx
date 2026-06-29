@@ -49,6 +49,8 @@ import Pricing from "@/pages/Pricing";
 import Segments from "@/pages/Segments";
 import Objectives from "@/pages/Objectives";
 import Channels from "@/pages/Channels";
+import Leads from "@/pages/Leads";
+import Templates from "@/pages/Templates";
 import RequireFeature from "@/components/auth/RequireFeature";
 import NotFound from "@/pages/NotFound";
 
@@ -95,6 +97,8 @@ const App = () => (
                 <Route path="objectives" element={<Objectives />} />
                 <Route path="customers" element={<Customers />} />
                 <Route path="prospects" element={<Prospects />} />
+                <Route path="leads" element={<RequireFeature feature="module_outreach"><Leads /></RequireFeature>} />
+                <Route path="templates" element={<RequireFeature feature="module_outreach"><Templates /></RequireFeature>} />
                 <Route path="products" element={<Products />} />
                 <Route path="channels" element={<Channels />} />
                 <Route path="orders" element={<Orders />} />

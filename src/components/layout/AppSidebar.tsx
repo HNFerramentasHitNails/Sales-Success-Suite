@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Users, Target, Package, ShoppingCart, FileText, Wallet, UserCog,
   Plug, Settings as SettingsIcon, CreditCard, Lock, BarChart3, Scale, Phone, History,
   CalendarDays, Sparkles, Shuffle, Tags, AlertCircle, RotateCcw, Ticket, Trophy, Store,
-  Calculator, Bot, BookOpen, Repeat, BadgePercent, Percent, PieChart, Filter, Network,
+  Calculator, Bot, BookOpen, Repeat, BadgePercent, Percent, PieChart, Filter, Network, Send,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import {
@@ -30,6 +30,11 @@ const GROUPS: NavGroup[] = [
     { title: "Faturas", url: "/app/invoices", icon: FileText },
     { title: "Subscrições", url: "/app/subscriptions", icon: Repeat },
     { title: "Comissões", url: "/app/commissions", icon: Wallet, feature: "module_commissions" },
+  ]},
+  { label: "Outreach", gate: "all", items: [
+    { title: "Leads", url: "/app/leads", icon: Filter, feature: "module_outreach" },
+    { title: "Templates", url: "/app/templates", icon: FileText, feature: "module_outreach" },
+    { title: "Campanhas", url: "/app/campaigns", icon: Send, feature: "module_outreach" },
   ]},
   { label: "Atividade", gate: "all", items: [
     { title: "Chamadas do dia", url: "/app/calls", icon: Phone },
