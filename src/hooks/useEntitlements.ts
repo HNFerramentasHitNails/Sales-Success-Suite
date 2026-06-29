@@ -29,6 +29,9 @@ const FEATURE_KEYS = [
   "max_connectors",
   "module_commissions",
   "module_integrations",
+  "module_outreach",
+  "max_leads",
+  "max_weekly_dispatches",
 ] as const;
 
 export function useEntitlements() {

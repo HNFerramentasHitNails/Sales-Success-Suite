@@ -2293,6 +2293,504 @@ export type Database = {
         }
         Relationships: []
       }
+      outreach_campaign_targets: {
+        Row: {
+          campaign_id: string
+          created_at: string
+          current_step: number
+          id: string
+          last_channel: string | null
+          lead_id: string
+          next_action_at: string | null
+          organization_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string
+          current_step?: number
+          id?: string
+          last_channel?: string | null
+          lead_id: string
+          next_action_at?: string | null
+          organization_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string
+          current_step?: number
+          id?: string
+          last_channel?: string | null
+          lead_id?: string
+          next_action_at?: string | null
+          organization_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "outreach_campaign_targets_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "outreach_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "outreach_campaign_targets_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "outreach_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "outreach_campaign_targets_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      outreach_campaigns: {
+        Row: {
+          audience_filter: Json
+          channels: string[]
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+          organization_id: string
+          schedule_mode: string
+          scheduled_at: string | null
+          status: string
+          steps: Json
+          updated_at: string
+        }
+        Insert: {
+          audience_filter?: Json
+          channels?: string[]
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+          organization_id: string
+          schedule_mode?: string
+          scheduled_at?: string | null
+          status?: string
+          steps?: Json
+          updated_at?: string
+        }
+        Update: {
+          audience_filter?: Json
+          channels?: string[]
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          organization_id?: string
+          schedule_mode?: string
+          scheduled_at?: string | null
+          status?: string
+          steps?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "outreach_campaigns_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      outreach_channel_state: {
+        Row: {
+          channel: string
+          consecutive_failures: number
+          daily_sent: number
+          day: string | null
+          id: string
+          organization_id: string
+          status: string
+          updated_at: string
+          week_start: string | null
+          weekly_sent: number
+        }
+        Insert: {
+          channel: string
+          consecutive_failures?: number
+          daily_sent?: number
+          day?: string | null
+          id?: string
+          organization_id: string
+          status?: string
+          updated_at?: string
+          week_start?: string | null
+          weekly_sent?: number
+        }
+        Update: {
+          channel?: string
+          consecutive_failures?: number
+          daily_sent?: number
+          day?: string | null
+          id?: string
+          organization_id?: string
+          status?: string
+          updated_at?: string
+          week_start?: string | null
+          weekly_sent?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "outreach_channel_state_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      outreach_email_domains: {
+        Row: {
+          created_at: string
+          daily_cap: number
+          domain: string
+          from_name: string | null
+          health_score: number
+          id: string
+          is_active: boolean
+          organization_id: string
+          resend_domain_id: string | null
+          sent_today: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          daily_cap?: number
+          domain: string
+          from_name?: string | null
+          health_score?: number
+          id?: string
+          is_active?: boolean
+          organization_id: string
+          resend_domain_id?: string | null
+          sent_today?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          daily_cap?: number
+          domain?: string
+          from_name?: string | null
+          health_score?: number
+          id?: string
+          is_active?: boolean
+          organization_id?: string
+          resend_domain_id?: string | null
+          sent_today?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "outreach_email_domains_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      outreach_leads: {
+        Row: {
+          city: string | null
+          company: string | null
+          country: string | null
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          email: string | null
+          full_name: string | null
+          has_whatsapp: boolean
+          id: string
+          name: string
+          niche: string | null
+          organization_id: string
+          phone: string | null
+          prospect_id: string | null
+          quality_score: number | null
+          source: string
+          state: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          city?: string | null
+          company?: string | null
+          country?: string | null
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          email?: string | null
+          full_name?: string | null
+          has_whatsapp?: boolean
+          id?: string
+          name: string
+          niche?: string | null
+          organization_id: string
+          phone?: string | null
+          prospect_id?: string | null
+          quality_score?: number | null
+          source?: string
+          state?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          city?: string | null
+          company?: string | null
+          country?: string | null
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          email?: string | null
+          full_name?: string | null
+          has_whatsapp?: boolean
+          id?: string
+          name?: string
+          niche?: string | null
+          organization_id?: string
+          phone?: string | null
+          prospect_id?: string | null
+          quality_score?: number | null
+          source?: string
+          state?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "outreach_leads_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "outreach_leads_prospect_id_fkey"
+            columns: ["prospect_id"]
+            isOneToOne: false
+            referencedRelation: "prospects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      outreach_messages: {
+        Row: {
+          campaign_id: string | null
+          channel: string
+          clicked_at: string | null
+          created_at: string
+          delivered_at: string | null
+          error: string | null
+          id: string
+          lead_id: string | null
+          opened_at: string | null
+          organization_id: string
+          provider_message_id: string | null
+          sent_at: string | null
+          status: string
+          target_id: string | null
+          variation_id: string | null
+        }
+        Insert: {
+          campaign_id?: string | null
+          channel: string
+          clicked_at?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          error?: string | null
+          id?: string
+          lead_id?: string | null
+          opened_at?: string | null
+          organization_id: string
+          provider_message_id?: string | null
+          sent_at?: string | null
+          status?: string
+          target_id?: string | null
+          variation_id?: string | null
+        }
+        Update: {
+          campaign_id?: string | null
+          channel?: string
+          clicked_at?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          error?: string | null
+          id?: string
+          lead_id?: string | null
+          opened_at?: string | null
+          organization_id?: string
+          provider_message_id?: string | null
+          sent_at?: string | null
+          status?: string
+          target_id?: string | null
+          variation_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "outreach_messages_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "outreach_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "outreach_messages_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "outreach_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "outreach_messages_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "outreach_messages_target_id_fkey"
+            columns: ["target_id"]
+            isOneToOne: false
+            referencedRelation: "outreach_campaign_targets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "outreach_messages_variation_id_fkey"
+            columns: ["variation_id"]
+            isOneToOne: false
+            referencedRelation: "outreach_template_variations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      outreach_template_variations: {
+        Row: {
+          angle: string | null
+          body: string
+          channel: string
+          created_at: string
+          id: string
+          organization_id: string
+          responses: number
+          sends: number
+          subject: string | null
+          template_id: string
+          updated_at: string
+          variation_index: number
+        }
+        Insert: {
+          angle?: string | null
+          body?: string
+          channel: string
+          created_at?: string
+          id?: string
+          organization_id: string
+          responses?: number
+          sends?: number
+          subject?: string | null
+          template_id: string
+          updated_at?: string
+          variation_index?: number
+        }
+        Update: {
+          angle?: string | null
+          body?: string
+          channel?: string
+          created_at?: string
+          id?: string
+          organization_id?: string
+          responses?: number
+          sends?: number
+          subject?: string | null
+          template_id?: string
+          updated_at?: string
+          variation_index?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "outreach_template_variations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "outreach_template_variations_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "outreach_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      outreach_templates: {
+        Row: {
+          channels: string[]
+          created_at: string
+          created_by: string | null
+          id: string
+          language: string
+          lead_stage: string | null
+          name: string
+          niche: string | null
+          objective: string | null
+          organization_id: string
+          tone: string | null
+          updated_at: string
+        }
+        Insert: {
+          channels?: string[]
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          language?: string
+          lead_stage?: string | null
+          name: string
+          niche?: string | null
+          objective?: string | null
+          organization_id: string
+          tone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          channels?: string[]
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          language?: string
+          lead_stage?: string | null
+          name?: string
+          niche?: string | null
+          objective?: string | null
+          organization_id?: string
+          tone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "outreach_templates_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plan_features: {
         Row: {
           created_at: string
@@ -3983,6 +4481,7 @@ export type Database = {
         }[]
       }
       org_within_user_limit: { Args: { _org_id: string }; Returns: boolean }
+      outreach_can_write: { Args: { _org_id: string }; Returns: boolean }
       preview_order_vat: {
         Args: {
           p_customer_id: string
@@ -3995,6 +4494,7 @@ export type Database = {
           treatment: string
         }[]
       }
+      promote_lead_to_prospect: { Args: { _lead_id: string }; Returns: string }
       recalc_order_totals_for: {
         Args: { p_order_id: string }
         Returns: undefined
@@ -4046,8 +4546,8 @@ export type Database = {
       }
       set_ai_settings: {
         Args: {
-          _api_key: string
-          _model: string
+          _api_key?: string
+          _model?: string
           _org_id: string
           _provider: string
         }
