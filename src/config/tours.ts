@@ -68,6 +68,13 @@ const TOURS: Record<string, TourStep[]> = {
   ],
 };
 
+// Tour do assistente de campanhas (dentro do diálogo)
+export const CAMPAIGN_WIZARD_TOUR: TourStep[] = [
+  { element: '[data-tour="wizard-progress"]', title: "5 passos", description: "O assistente tem 5 passos. Esta barra mostra onde estás: Informações → Audiência → Sequência → Agendamento → Revisão.", side: "bottom" },
+  { element: '[data-tour="wizard-body"]', title: "Passo atual", description: "Passo 1 — dá um nome à campanha e escolhe os canais (Email e/ou WhatsApp). Os passos seguintes deixam-te escolher a audiência (Leads, Clientes ou Prospects), montar a sequência de mensagens e agendar.", side: "top" },
+  { element: '[data-tour="wizard-nav"]', title: "Navegação", description: "Avança com 'Seguinte' (só ativa quando o passo está válido) e, no fim, 'Criar e Lançar' inscreve os contactos e dispara a 1ª mensagem.", side: "top" },
+];
+
 export function getPageTour(pathname: string): TourStep[] | null {
   const keys = Object.keys(TOURS).sort((a, b) => b.length - a.length);
   const k = keys.find((key) => pathname === key || pathname.startsWith(key + "/"));

@@ -3,7 +3,10 @@ import { Outlet, useLocation } from "react-router-dom";
 import { Search, HelpCircle } from "lucide-react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator,
+  DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import AppSidebar from "@/components/layout/AppSidebar";
 import OrgSwitcher from "@/components/layout/OrgSwitcher";
 import UserMenu from "@/components/layout/UserMenu";
@@ -40,13 +43,30 @@ export default function AppLayout() {
                   <HelpCircle className="h-5 w-5" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
+              <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuItem onClick={() => window.dispatchEvent(new Event("app:start-tour"))}>
                   Tour da plataforma
                 </DropdownMenuItem>
                 <DropdownMenuItem disabled={!hasPageTour} onClick={() => window.dispatchEvent(new Event("app:start-page-tour"))}>
                   Tour desta página
                 </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger>Pré-visualizar tour como…</DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent>
+                    <DropdownMenuLabel className="text-xs text-muted-foreground">Ver o tour de cada papel</DropdownMenuLabel>
+                    {[
+                      { r: "admin", l: "Administrador" },
+                      { r: "sales_director", l: "Diretor de Vendas" },
+                      { r: "sales_rep", l: "Comercial" },
+                      { r: "read_only", l: "Consulta" },
+                    ].map((o) => (
+                      <DropdownMenuItem key={o.r} onClick={() => window.dispatchEvent(new CustomEvent("app:start-tour", { detail: { previewRole: o.r } }))}>
+                        {o.l}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
               </DropdownMenuContent>
             </DropdownMenu>
             <span data-tour="org-switcher"><OrgSwitcher /></span>

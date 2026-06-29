@@ -3,9 +3,19 @@ import { useLocation } from "react-router-dom";
 import { driver, type DriveStep } from "driver.js";
 import "driver.js/dist/driver.css";
 import { useOrganization } from "@/contexts/OrganizationContext";
-import { getPageTour, type TourStep } from "@/config/tours";
+import { GROUPS, visibleGroups, type NavCtx } from "@/config/nav";
+import { getPageTour, CAMPAIGN_WIZARD_TOUR, type TourStep } from "@/config/tours";
 
 const TOUR_KEY = "tour_done_v1";
+const GROUP_IDS = new Set(GROUPS.map((g) => g.tourId).filter(Boolean) as string[]);
+
+function ctxForRole(pr: string): NavCtx | null {
+  if (pr === "admin") return { isAdmin: true, role: "admin" };
+  if (pr === "sales_director") return { isAdmin: false, role: "sales_director" };
+  if (pr === "sales_rep") return { isAdmin: false, role: "sales_rep" };
+  if (pr === "read_only") return { isAdmin: false, role: "read_only" };
+  return null;
+}
 
 function roleSummary(isAdmin: boolean, role: string | null): { label: string; text: string } {
   if (isAdmin) return { label: "Administrador", text: "tens acesso total: vendas, outreach, análise, pós-venda, distribuição, IA e todas as definições (equipa, plano, integrações, WhatsApp e domínios)." };
@@ -38,9 +48,20 @@ function globalSteps(isAdmin: boolean, role: string | null): TourStep[] {
   ];
 }
 
-function runSteps(raw: TourStep[]) {
+function groupIdOf(selector?: string): string | null {
+  if (!selector) return null;
+  const m = selector.match(/data-tour="([^"]+)"/);
+  const id = m?.[1];
+  return id && GROUP_IDS.has(id) ? id : null;
+}
+
+function runSteps(raw: TourStep[], allowedGroups?: Set<string>) {
   const steps: DriveStep[] = raw
-    .filter((s) => !s.element || document.querySelector(s.element))
+    .filter((s) => {
+      const gid = groupIdOf(s.element);
+      if (gid && allowedGroups && !allowedGroups.has(gid)) return false; // secção sem acesso para este papel
+      return !s.element || document.querySelector(s.element);
+    })
     .map((s) => ({ element: s.element, popover: { title: s.title, description: s.description, side: s.side, align: "start" } }));
   if (!steps.length) return;
   driver({
@@ -58,13 +79,22 @@ export default function ProductTour() {
   const { isAdmin, role } = useOrganization();
 
   useEffect(() => {
-    const onGlobal = () => runSteps(globalSteps(isAdmin, role ?? null));
+    const onGlobal = (e: Event) => {
+      const pr = e instanceof CustomEvent ? (e.detail?.previewRole as string | undefined) : undefined;
+      const ctx = pr ? ctxForRole(pr) : { isAdmin, role: role ?? null };
+      if (!ctx) return;
+      const allowed = new Set(visibleGroups(ctx).map((g) => g.tourId).filter(Boolean) as string[]);
+      runSteps(globalSteps(ctx.isAdmin, ctx.role), allowed);
+    };
     const onPage = () => { const t = getPageTour(pathname); if (t) runSteps(t); };
+    const onWizard = () => runSteps(CAMPAIGN_WIZARD_TOUR);
     window.addEventListener("app:start-tour", onGlobal);
     window.addEventListener("app:start-page-tour", onPage);
+    window.addEventListener("app:tour-campaign-wizard", onWizard);
     return () => {
       window.removeEventListener("app:start-tour", onGlobal);
       window.removeEventListener("app:start-page-tour", onPage);
+      window.removeEventListener("app:tour-campaign-wizard", onWizard);
     };
   }, [isAdmin, role, pathname]);
 
@@ -74,7 +104,9 @@ export default function ProductTour() {
     if (localStorage.getItem(TOUR_KEY)) return;
     const t = window.setTimeout(() => {
       localStorage.setItem(TOUR_KEY, "1");
-      runSteps(globalSteps(isAdmin, role ?? null));
+      const ctx = { isAdmin, role: role ?? null };
+      const allowed = new Set(visibleGroups(ctx).map((g) => g.tourId).filter(Boolean) as string[]);
+      runSteps(globalSteps(isAdmin, role ?? null), allowed);
     }, 1000);
     return () => window.clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
