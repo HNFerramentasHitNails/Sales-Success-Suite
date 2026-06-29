@@ -2,59 +2,71 @@ import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { driver, type DriveStep } from "driver.js";
 import "driver.js/dist/driver.css";
+import { useOrganization } from "@/contexts/OrganizationContext";
+import { getPageTour, type TourStep } from "@/config/tours";
 
 const TOUR_KEY = "tour_done_v1";
 
-type Step = { element?: string; title: string; description: string; side?: "top" | "bottom" | "left" | "right" };
+function roleSummary(isAdmin: boolean, role: string | null): { label: string; text: string } {
+  if (isAdmin) return { label: "Administrador", text: "tens acesso total: vendas, outreach, análise, pós-venda, distribuição, IA e todas as definições (equipa, plano, integrações, WhatsApp e domínios)." };
+  if (role === "sales_director") return { label: "Diretor de Vendas", text: "tens acesso a vendas, outreach, análise, pós-venda e IA, incluindo os objetivos e o desempenho da equipa." };
+  if (role === "sales_rep" || role === "sales") return { label: "Comercial", text: "tens acesso ao teu dia-a-dia: clientes, prospeção, outreach, atividade, pós-venda e os agentes de IA." };
+  if (role === "read_only") return { label: "Consulta", text: "podes ver os dados e relatórios, mas sem editar." };
+  return { label: "Utilizador", text: "vamos ver as áreas a que tens acesso." };
+}
 
-const STEPS: Step[] = [
-  { title: "Bem-vindo! 👋", description: "Vamos dar uma volta rápida pela plataforma para saberes onde está cada coisa. Podes sair a qualquer momento e rever este tour no botão <b>?</b> no topo." },
-  { element: '[data-tour="sidebar-toggle"]', title: "Menu lateral", description: "Aqui recolhes ou expandes o menu. Os grupos abrem e fecham — só fica aberta a secção onde estás, para não te perderes.", side: "bottom" },
-  { element: '[data-tour="search"]', title: "Pesquisa rápida (⌘K / Ctrl+K)", description: "O caminho mais rápido: escreve o nome de qualquer página ou ação e salta lá directamente. Funciona em todo o lado.", side: "bottom" },
-  { element: '[data-tour="inicio"]', title: "Início", description: "O teu <b>Painel</b> com a visão geral do negócio e os teus <b>Objetivos</b>. É a tua página inicial.", side: "right" },
-  { element: '[data-tour="outreach"]', title: "Outreach — captação e campanhas", description: "O coração da prospeção: <b>Inbox</b> (conversas WhatsApp), <b>Leads</b>, <b>Marketplace</b> (capturar leads do Google Maps), <b>Campanhas</b> (email + WhatsApp) e <b>Templates</b> (gerados com IA).", side: "right" },
-  { element: '[data-tour="vendas"]', title: "Clientes & Vendas", description: "A tua base comercial: <b>Clientes</b>, <b>Prospeção</b> (funil), <b>Encomendas</b>, <b>Faturas</b>, <b>Subscrições</b> e <b>Comissões</b>.", side: "right" },
-  { element: '[data-tour="atividade"]', title: "Atividade", description: "O dia-a-dia comercial: <b>Chamadas do dia</b>, <b>Agenda</b> e o <b>Histórico de chamadas</b>.", side: "right" },
-  { element: '[data-tour="catalogo"]', title: "Catálogo", description: "Os teus <b>Produtos</b>, <b>Canais de venda</b> e a tabela de <b>Preços & Descontos</b>.", side: "right" },
-  { element: '[data-tour="analise"]', title: "Análise", description: "Inteligência sobre o negócio: <b>Pareto</b>, comparação de produtos, <b>lead scoring</b>, atribuição de leads, etiquetas e <b>segmentos RFM</b>.", side: "right" },
-  { element: '[data-tour="posvenda"]', title: "Pós-venda", description: "Depois da venda: <b>Problemas</b>, <b>Devoluções</b>, <b>Vouchers</b>, campanhas de carteira e conquistas.", side: "right" },
-  { element: '[data-tour="distribuicao"]', title: "Distribuição", description: "Gestão de <b>parceiros/revendedores</b>, calculadora e análise da distribuição.", side: "right" },
-  { element: '[data-tour="ia"]', title: "Inteligência Artificial", description: "Os <b>Agentes IA</b> (vendas, treino, estratégia) e a <b>Base de conhecimento</b> que alimenta as respostas.", side: "right" },
-  { element: '[data-tour="definicoes"]', title: "Definições — tudo num só sítio", description: "Aqui configuras a <b>Organização</b>, <b>Equipa</b>, <b>Plano</b>, <b>IA</b>, <b>WhatsApp</b>, <b>Domínios de envio</b> e <b>Integrações</b>. É onde se liga tudo.", side: "right" },
-  { element: '[data-tour="org-switcher"]', title: "Organização ativa", description: "Se pertences a mais do que uma organização, trocas aqui entre elas.", side: "bottom" },
-  { element: '[data-tour="user-menu"]', title: "A tua conta", description: "Perfil, preferências e terminar sessão.", side: "bottom" },
-  { element: '[data-tour="checklist"]', title: "Primeiros passos", description: "Este cartão guia-te na configuração inicial: ligar o WhatsApp, verificar um domínio, capturar leads e criar a primeira campanha. Desaparece quando estiver tudo feito.", side: "top" },
-  { title: "Pronto! 🚀", description: "É isto. Sempre que precisares, clica no botão <b>?</b> no topo para rever o tour, ou usa a <b>pesquisa (⌘K)</b> para chegar a qualquer sítio num instante." },
-];
+function globalSteps(isAdmin: boolean, role: string | null): TourStep[] {
+  const r = roleSummary(isAdmin, role);
+  return [
+    { title: "Bem-vindo! 👋", description: `Como <b>${r.label}</b>, ${r.text}<br/><br/>Vamos ver onde está cada coisa — mostro-te só o que podes usar. (Podes rever este tour no botão <b>?</b> no topo.)` },
+    { element: '[data-tour="sidebar-toggle"]', title: "Menu lateral", description: "Recolhes/expandes o menu. Os grupos abrem e fecham — só fica aberta a secção onde estás.", side: "bottom" },
+    { element: '[data-tour="search"]', title: "Pesquisa rápida (⌘K / Ctrl+K)", description: "Escreve o nome de qualquer página ou ação e salta lá diretamente.", side: "bottom" },
+    { element: '[data-tour="inicio"]', title: "Início", description: "O teu <b>Painel</b> com a visão geral e os teus <b>Objetivos</b>.", side: "right" },
+    { element: '[data-tour="outreach"]', title: "Outreach", description: "Prospeção e campanhas: <b>Inbox</b>, <b>Leads</b>, <b>Marketplace</b>, <b>Campanhas</b> e <b>Templates</b>.", side: "right" },
+    { element: '[data-tour="vendas"]', title: "Clientes & Vendas", description: "<b>Clientes</b>, <b>Prospeção</b>, <b>Encomendas</b>, <b>Faturas</b>, <b>Subscrições</b> e <b>Comissões</b>.", side: "right" },
+    { element: '[data-tour="atividade"]', title: "Atividade", description: "<b>Chamadas do dia</b>, <b>Agenda</b> e <b>Histórico de chamadas</b>.", side: "right" },
+    { element: '[data-tour="catalogo"]', title: "Catálogo", description: "<b>Produtos</b>, <b>Canais de venda</b> e <b>Preços & Descontos</b>.", side: "right" },
+    { element: '[data-tour="analise"]', title: "Análise", description: "Inteligência sobre o negócio: Pareto, lead scoring, segmentos RFM e mais. (Disponível para gestão.)", side: "right" },
+    { element: '[data-tour="posvenda"]', title: "Pós-venda", description: "Problemas, devoluções, vouchers, campanhas de carteira e conquistas.", side: "right" },
+    { element: '[data-tour="distribuicao"]', title: "Distribuição", description: "Parceiros/revendedores, calculadora e análise da distribuição.", side: "right" },
+    { element: '[data-tour="ia"]', title: "Inteligência Artificial", description: "Os <b>Agentes IA</b> e a <b>Base de conhecimento</b> que os alimenta.", side: "right" },
+    { element: '[data-tour="definicoes"]', title: "Definições", description: "Configuração concentrada: Organização, Equipa, Plano, IA, WhatsApp, Domínios e Integrações. (Só administradores.)", side: "right" },
+    { element: '[data-tour="org-switcher"]', title: "Organização ativa", description: "Trocas aqui entre organizações, se pertenceres a mais do que uma.", side: "bottom" },
+    { element: '[data-tour="user-menu"]', title: "A tua conta", description: "Perfil, preferências e terminar sessão.", side: "bottom" },
+    { element: '[data-tour="checklist"]', title: "Primeiros passos", description: "Guia-te na configuração inicial. Desaparece quando estiver tudo feito.", side: "top" },
+    { title: "Pronto! 🚀", description: "Dica: em cada página, abre o botão <b>?</b> → <b>Tour desta página</b> para uma explicação detalhada dessa área." },
+  ];
+}
+
+function runSteps(raw: TourStep[]) {
+  const steps: DriveStep[] = raw
+    .filter((s) => !s.element || document.querySelector(s.element))
+    .map((s) => ({ element: s.element, popover: { title: s.title, description: s.description, side: s.side, align: "start" } }));
+  if (!steps.length) return;
+  driver({
+    showProgress: true,
+    progressText: "{{current}} de {{total}}",
+    nextBtnText: "Seguinte",
+    prevBtnText: "Anterior",
+    doneBtnText: "Concluir",
+    steps,
+  }).drive();
+}
 
 export default function ProductTour() {
   const { pathname } = useLocation();
+  const { isAdmin, role } = useOrganization();
 
-  const start = () => {
-    const steps: DriveStep[] = STEPS
-      .filter((s) => !s.element || document.querySelector(s.element))
-      .map((s) => ({
-        element: s.element,
-        popover: { title: s.title, description: s.description, side: s.side, align: "start" },
-      }));
-    if (!steps.length) return;
-    const d = driver({
-      showProgress: true,
-      progressText: "{{current}} de {{total}}",
-      nextBtnText: "Seguinte",
-      prevBtnText: "Anterior",
-      doneBtnText: "Concluir",
-      steps,
-    });
-    d.drive();
-  };
-
-  // botão "?" no cabeçalho dispara este evento
   useEffect(() => {
-    const handler = () => start();
-    window.addEventListener("app:start-tour", handler);
-    return () => window.removeEventListener("app:start-tour", handler);
-  }, []);
+    const onGlobal = () => runSteps(globalSteps(isAdmin, role ?? null));
+    const onPage = () => { const t = getPageTour(pathname); if (t) runSteps(t); };
+    window.addEventListener("app:start-tour", onGlobal);
+    window.addEventListener("app:start-page-tour", onPage);
+    return () => {
+      window.removeEventListener("app:start-tour", onGlobal);
+      window.removeEventListener("app:start-page-tour", onPage);
+    };
+  }, [isAdmin, role, pathname]);
 
   // auto-arranque uma vez para utilizadores novos
   useEffect(() => {
@@ -62,7 +74,7 @@ export default function ProductTour() {
     if (localStorage.getItem(TOUR_KEY)) return;
     const t = window.setTimeout(() => {
       localStorage.setItem(TOUR_KEY, "1");
-      start();
+      runSteps(globalSteps(isAdmin, role ?? null));
     }, 1000);
     return () => window.clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps

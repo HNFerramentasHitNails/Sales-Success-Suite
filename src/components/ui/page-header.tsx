@@ -15,7 +15,7 @@ interface PageHeaderProps {
  */
 export function PageHeader({ title, description, icon, actions, className }: PageHeaderProps) {
   return (
-    <div className={cn("flex items-start justify-between gap-4 flex-wrap", className)}>
+    <div className={cn("flex items-start justify-between gap-4 flex-wrap", className)} data-tour="page-header">
       <div className="min-w-0">
         <h1 className="text-2xl md:text-3xl font-display font-bold flex items-center gap-2 leading-tight">
           {icon}
@@ -26,7 +26,7 @@ export function PageHeader({ title, description, icon, actions, className }: Pag
         ) : null}
       </div>
       {actions ? (
-        <div className="flex items-center gap-2 flex-wrap shrink-0">{actions}</div>
+        <div className="flex items-center gap-2 flex-wrap shrink-0" data-tour="page-actions">{actions}</div>
       ) : null}
     </div>
   );
