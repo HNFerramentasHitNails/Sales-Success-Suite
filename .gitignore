@@ -23,5 +23,6 @@ dist-ssr
 *.sln
 *.sw?
 
-# Local env (use Vercel/Supabase env vars in prod)
-.env
+# Local-only secrets (service-role keys etc.) — never commit these
+.env.local
+.env*.local
