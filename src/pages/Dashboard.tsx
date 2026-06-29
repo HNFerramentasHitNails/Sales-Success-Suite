@@ -153,6 +153,11 @@ export default function Dashboard() {
     else if (n.entity_type === "order") navigate(`/app/orders`);
   };
 
+  const askAgent = (n: any) => {
+    const prompt = `Tenho esta sugestão no meu painel: "${n.title}".${n.body ? ` Contexto: ${n.body}` : ""}\n\nQue próximos passos concretos me recomendas?`;
+    navigate("/app/agents", { state: { prompt, agent: "sales" } });
+  };
+
   const load = useCallback(async () => {
     if (!activeOrg) return;
     setLoading(true);
@@ -289,12 +294,10 @@ export default function Dashboard() {
                         <Button size="sm" variant="outline" onClick={() => openEntity(n)}>Ver</Button>
                       )}
                       <Button size="sm" variant="ghost" onClick={() => dismissNudge(n.id)}>Dispensar</Button>
-                      <Link to="/app/agents" className="ml-auto">
-                        <Button size="sm" variant="ghost">
-                          <MessageCircle className="h-3.5 w-3.5 mr-1" />
-                          Perguntar ao Agente
-                        </Button>
-                      </Link>
+                      <Button size="sm" variant="ghost" className="ml-auto" onClick={() => askAgent(n)}>
+                        <MessageCircle className="h-3.5 w-3.5 mr-1" />
+                        Perguntar ao Agente
+                      </Button>
                     </div>
                   </div>
                 );

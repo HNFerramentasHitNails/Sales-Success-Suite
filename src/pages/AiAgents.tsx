@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from "react";
-import { Link, Navigate } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import {
   Brain,
@@ -99,8 +99,19 @@ function formatRelative(iso: string): string {
 
 export default function AiAgents() {
   const { activeOrg, isAdmin, role } = useOrganization();
-  const [tab, setTab] = useState<AgentType>("sales");
+  const location = useLocation();
+  const navigate = useNavigate();
+  const navState = (location.state ?? {}) as { prompt?: string; agent?: AgentType };
+  const validAgent = navState.agent && ["sales", "trainer", "strategist"].includes(navState.agent) ? navState.agent : undefined;
+  const [tab, setTab] = useState<AgentType>(validAgent ?? "sales");
+  const [pendingPrompt, setPendingPrompt] = useState<string | undefined>(typeof navState.prompt === "string" ? navState.prompt : undefined);
   const canManageAi = isAdmin || role === "sales_director";
+
+  // limpar o estado de navegação para não reaplicar o prompt em refresh/re-render
+  useEffect(() => {
+    if (navState.prompt || navState.agent) navigate(location.pathname, { replace: true, state: null });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (!activeOrg) return <Navigate to="/app/dashboard" replace />;
 
@@ -129,6 +140,8 @@ export default function AiAgents() {
               orgId={activeOrg.id}
               canManageAi={canManageAi}
               active={tab === a.id}
+              initialPrompt={a.id === tab ? pendingPrompt : undefined}
+              onPromptConsumed={() => setPendingPrompt(undefined)}
             />
           </TabsContent>
         ))}
@@ -142,9 +155,11 @@ type AgentWorkspaceProps = {
   orgId: string;
   canManageAi: boolean;
   active: boolean;
+  initialPrompt?: string;
+  onPromptConsumed?: () => void;
 };
 
-function AgentWorkspace({ agent, orgId, canManageAi, active }: AgentWorkspaceProps) {
+function AgentWorkspace({ agent, orgId, canManageAi, active, initialPrompt, onPromptConsumed }: AgentWorkspaceProps) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConvId, setActiveConvId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -215,6 +230,18 @@ function AgentWorkspace({ agent, orgId, canManageAi, active }: AgentWorkspacePro
   useEffect(() => {
     if (active) textareaRef.current?.focus();
   }, [active, activeConvId]);
+
+  // prompt vindo do Painel ("Perguntar ao Agente"): pré-preenche o chat numa nova conversa
+  const promptAppliedRef = useRef(false);
+  useEffect(() => {
+    if (!active || !initialPrompt || promptAppliedRef.current) return;
+    promptAppliedRef.current = true;
+    setActiveConvId(null);
+    setMessages([]);
+    setInput(initialPrompt);
+    setTimeout(() => textareaRef.current?.focus(), 60);
+    onPromptConsumed?.();
+  }, [active, initialPrompt, onPromptConsumed]);
 
   const startNewConversation = () => {
     setActiveConvId(null);
