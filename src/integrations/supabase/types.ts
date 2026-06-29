@@ -2511,6 +2511,7 @@ export type Database = {
           country: string | null
           created_at: string
           created_by: string | null
+          customer_id: string | null
           deleted_at: string | null
           email: string | null
           full_name: string | null
@@ -2533,6 +2534,7 @@ export type Database = {
           country?: string | null
           created_at?: string
           created_by?: string | null
+          customer_id?: string | null
           deleted_at?: string | null
           email?: string | null
           full_name?: string | null
@@ -2555,6 +2557,7 @@ export type Database = {
           country?: string | null
           created_at?: string
           created_by?: string | null
+          customer_id?: string | null
           deleted_at?: string | null
           email?: string | null
           full_name?: string | null
@@ -2572,6 +2575,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "outreach_leads_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "outreach_leads_organization_id_fkey"
             columns: ["organization_id"]
@@ -4340,6 +4350,15 @@ export type Database = {
       cron_process_missed_calls: { Args: never; Returns: number }
       cron_recalculate_rfm_all: { Args: never; Returns: undefined }
       cron_refresh_prospect_scores: { Args: never; Returns: undefined }
+      enroll_campaign: {
+        Args: {
+          _campaign_id: string
+          _ids: string[]
+          _source: string
+          _when: string
+        }
+        Returns: number
+      }
       generate_commission_statements: {
         Args: { _from: string; _org_id: string; _to: string }
         Returns: {

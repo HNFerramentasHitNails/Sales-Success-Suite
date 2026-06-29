@@ -51,7 +51,10 @@ export default function Campaigns() {
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(1);
   const [name, setName] = useState("");
+  const [source, setSource] = useState<"leads" | "customers" | "prospects">("leads");
   const [filters, setFilters] = useState({ status: "all", niche: "", country: "all", has_whatsapp: false });
+  const [custOnlyActive, setCustOnlyActive] = useState(true);
+  const [prosStage, setProsStage] = useState("all");
   const [audienceCount, setAudienceCount] = useState<number | null>(null);
   const [steps, setSteps] = useState<Step[]>([{ channel: "email", template_id: "", delay_hours: 0 }]);
   const [scheduleMode, setScheduleMode] = useState<"immediate" | "scheduled">("immediate");
@@ -86,20 +89,31 @@ export default function Campaigns() {
   const selectedChannels = (Object.keys(channels) as WaChannel[]).filter((c) => channels[c]);
   const templatesForChannel = (ch: WaChannel) => templates.filter((t) => (ch === "email" ? emailTemplateIds : whatsappTemplateIds).has(t.id));
 
-  const buildLeadQuery = useCallback(() => {
+  const buildAudienceQuery = useCallback(() => {
+    if (source === "customers") {
+      let q = supabase.from("customers").select("id", { count: "exact" }).eq("organization_id", activeOrg!.id);
+      if (custOnlyActive) q = q.eq("is_active", true);
+      if (filters.country !== "all") q = q.eq("country", filters.country);
+      return q;
+    }
+    if (source === "prospects") {
+      let q = supabase.from("prospects").select("id", { count: "exact" }).eq("organization_id", activeOrg!.id);
+      if (prosStage !== "all") q = q.eq("pipeline_stage", prosStage as any);
+      return q;
+    }
     let q = supabase.from("outreach_leads").select("id", { count: "exact" }).eq("organization_id", activeOrg!.id).is("deleted_at", null);
     if (filters.status !== "all") q = q.eq("status", filters.status);
     if (filters.country !== "all") q = q.eq("country", filters.country);
     if (filters.niche.trim()) q = q.ilike("niche", `%${filters.niche.trim()}%`);
     if (filters.has_whatsapp) q = q.eq("has_whatsapp", true);
     return q;
-  }, [activeOrg, filters]);
+  }, [activeOrg, source, filters, custOnlyActive, prosStage]);
 
   const refreshCount = useCallback(async () => {
     if (!activeOrg) return;
-    const { count } = await buildLeadQuery();
+    const { count } = await buildAudienceQuery();
     setAudienceCount(count ?? 0);
-  }, [activeOrg, buildLeadQuery]);
+  }, [activeOrg, buildAudienceQuery]);
 
   useEffect(() => { if (open && step === 2) refreshCount(); }, [open, step, refreshCount]);
 
@@ -112,6 +126,7 @@ export default function Campaigns() {
 
   const openWizard = () => {
     setStep(1); setName(""); setChannels({ email: true, whatsapp: false });
+    setSource("leads"); setCustOnlyActive(true); setProsStage("all");
     setFilters({ status: "all", niche: "", country: "all", has_whatsapp: false });
     setAudienceCount(null); setSteps([{ channel: "email", template_id: "", delay_hours: 0 }]);
     setScheduleMode("immediate"); setScheduledAt(""); setOpen(true);
@@ -133,25 +148,21 @@ export default function Campaigns() {
       const status = asDraft ? "draft" : scheduleMode === "scheduled" ? "scheduled" : "running";
       const { data: camp, error } = await supabase.from("outreach_campaigns").insert({
         organization_id: activeOrg.id, name: name.trim(), channels: selectedChannels,
-        status, audience_filter: filters, steps, schedule_mode: scheduleMode,
+        status, audience_filter: { source, ...filters, custOnlyActive, prosStage }, steps, schedule_mode: scheduleMode,
         scheduled_at: scheduleMode === "scheduled" && scheduledAt ? new Date(scheduledAt).toISOString() : null,
       }).select("id").single();
       if (error || !camp) throw error;
 
       if (!asDraft) {
-        // resolver audiência e criar targets
-        const { data: leads } = await buildLeadQuery().limit(5000);
-        const targets = (leads ?? []).map((l: any) => ({
-          organization_id: activeOrg.id, campaign_id: camp.id, lead_id: l.id,
-          status: "pending", current_step: 0, next_action_at: when,
-        }));
-        for (let i = 0; i < targets.length; i += 500) {
-          const { error: tErr } = await supabase.from("outreach_campaign_targets").insert(targets.slice(i, i + 500));
-          if (tErr) throw tErr;
-        }
-        toast({ title: `Campanha criada com ${targets.length} leads` });
+        // resolver audiência (por fonte) e inscrever via RPC (materializa clientes/prospects)
+        const { data: recs } = await buildAudienceQuery().limit(5000);
+        const ids = (recs ?? []).map((r: any) => r.id);
+        const { data: enrolled, error: enErr } = await supabase.rpc("enroll_campaign", {
+          _campaign_id: camp.id, _source: source, _ids: ids, _when: when,
+        });
+        if (enErr) throw enErr;
+        toast({ title: `Campanha criada com ${enrolled ?? 0} recipientes` });
         if (scheduleMode === "immediate") {
-          // processar já
           await supabase.functions.invoke("outreach-dispatch-worker", { body: { organization_id: activeOrg.id } });
           toast({ title: "Disparo iniciado" });
         }
@@ -296,42 +307,97 @@ export default function Campaigns() {
 
           {step === 2 && (
             <div className="space-y-3">
-              <p className="text-sm text-muted-foreground">Segmenta os leads que vão entrar na campanha.</p>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="grid gap-1.5">
-                  <Label>Status</Label>
-                  <Select value={filters.status} onValueChange={(v) => setFilters({ ...filters, status: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos</SelectItem>
-                      <SelectItem value="novo">Novo</SelectItem>
-                      <SelectItem value="contactado">Contactado</SelectItem>
-                      <SelectItem value="respondeu">Respondeu</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid gap-1.5">
-                  <Label>País</Label>
-                  <Select value={filters.country} onValueChange={(v) => setFilters({ ...filters, country: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos</SelectItem>
-                      {COUNTRIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid gap-1.5">
-                  <Label>Nicho contém</Label>
-                  <Input value={filters.niche} onChange={(e) => setFilters({ ...filters, niche: e.target.value })} placeholder="Restaurantes…" />
-                </div>
-                <div className="flex items-center gap-2 mt-6">
-                  <Checkbox id="wa2" checked={filters.has_whatsapp} onCheckedChange={(v) => setFilters({ ...filters, has_whatsapp: !!v })} />
-                  <Label htmlFor="wa2">Só com WhatsApp</Label>
-                </div>
+              <div className="grid gap-1.5 max-w-xs">
+                <Label>Fonte da audiência</Label>
+                <Select value={source} onValueChange={(v) => setSource(v as any)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="leads">Leads (prospeção fria)</SelectItem>
+                    <SelectItem value="customers">Clientes (reativação/upsell)</SelectItem>
+                    <SelectItem value="prospects">Prospects (follow-up)</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
+
+              {source === "leads" && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="grid gap-1.5">
+                    <Label>Status</Label>
+                    <Select value={filters.status} onValueChange={(v) => setFilters({ ...filters, status: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos</SelectItem>
+                        <SelectItem value="novo">Novo</SelectItem>
+                        <SelectItem value="contactado">Contactado</SelectItem>
+                        <SelectItem value="respondeu">Respondeu</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label>País</Label>
+                    <Select value={filters.country} onValueChange={(v) => setFilters({ ...filters, country: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos</SelectItem>
+                        {COUNTRIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label>Nicho contém</Label>
+                    <Input value={filters.niche} onChange={(e) => setFilters({ ...filters, niche: e.target.value })} placeholder="Restaurantes…" />
+                  </div>
+                  <div className="flex items-center gap-2 mt-6">
+                    <Checkbox id="wa2" checked={filters.has_whatsapp} onCheckedChange={(v) => setFilters({ ...filters, has_whatsapp: !!v })} />
+                    <Label htmlFor="wa2">Só com WhatsApp</Label>
+                  </div>
+                </div>
+              )}
+
+              {source === "customers" && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="grid gap-1.5">
+                    <Label>País</Label>
+                    <Select value={filters.country} onValueChange={(v) => setFilters({ ...filters, country: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos</SelectItem>
+                        {COUNTRIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex items-center gap-2 mt-6">
+                    <Checkbox id="cust_active" checked={custOnlyActive} onCheckedChange={(v) => setCustOnlyActive(!!v)} />
+                    <Label htmlFor="cust_active">Só clientes ativos</Label>
+                  </div>
+                </div>
+              )}
+
+              {source === "prospects" && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="grid gap-1.5">
+                    <Label>Fase do funil</Label>
+                    <Select value={prosStage} onValueChange={setProsStage}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todas</SelectItem>
+                        <SelectItem value="novo">Novo</SelectItem>
+                        <SelectItem value="contactado">Contactado</SelectItem>
+                        <SelectItem value="qualificado">Qualificado</SelectItem>
+                        <SelectItem value="proposta">Proposta</SelectItem>
+                        <SelectItem value="negociacao">Negociação</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
+
               <div className="rounded-md bg-muted/40 p-3 text-sm">
-                {audienceCount === null ? <Loader2 className="h-4 w-4 animate-spin inline" /> : <><strong>{audienceCount}</strong> leads correspondem a este filtro.</>}
+                {audienceCount === null ? <Loader2 className="h-4 w-4 animate-spin inline" /> : <><strong>{audienceCount}</strong> {source === "customers" ? "clientes" : source === "prospects" ? "prospects" : "leads"} correspondem a este filtro.</>}
               </div>
+              {source !== "leads" && (
+                <p className="text-xs text-muted-foreground">Só entram os que têm email ou telefone. Ficam ligados à ficha original.</p>
+              )}
             </div>
           )}
 
