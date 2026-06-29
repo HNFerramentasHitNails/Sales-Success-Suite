@@ -1,0 +1,1 @@
+grant execute on function public._test_rls_isolation() to authenticated, anon, postgres;

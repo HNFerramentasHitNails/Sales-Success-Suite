@@ -1,0 +1,1 @@
+ALTER TABLE public.prospects ADD COLUMN IF NOT EXISTS invoiced boolean NOT NULL DEFAULT false;

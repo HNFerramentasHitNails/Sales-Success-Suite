@@ -1,2 +1,3 @@
-# Sales-Success-Suite
-Sales Success Suite HN HIT NAILS Project
+# Welcome to your Lovable project
+
+TODO: Document your project here

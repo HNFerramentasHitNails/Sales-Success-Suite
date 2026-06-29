@@ -1,0 +1,15 @@
+drop table if exists public.survey_answers cascade;
+drop table if exists public.survey_responses cascade;
+drop table if exists public.survey_fields cascade;
+drop table if exists public.surveys cascade;
+drop table if exists public.hr_attendance cascade;
+drop table if exists public.hr_leave_requests cascade;
+drop table if exists public.hr_employees cascade;
+drop table if exists public.okr_key_results cascade;
+drop table if exists public.okr_objectives cascade;
+drop table if exists public.okr_cycles cascade;
+drop table if exists public.project_tasks cascade;
+drop table if exists public.project_stages cascade;
+drop table if exists public.projects cascade;
+drop function if exists public.recompute_okr_objective_progress() cascade;
+drop function if exists public.seed_default_project_stages() cascade;

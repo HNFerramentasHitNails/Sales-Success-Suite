@@ -1,0 +1,1 @@
+alter view public.integrations_safe set (security_invoker = on);

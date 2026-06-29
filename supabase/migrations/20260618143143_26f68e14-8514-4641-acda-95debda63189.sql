@@ -1,0 +1,22 @@
+
+ALTER TABLE public.customers
+  ADD COLUMN IF NOT EXISTS is_company boolean NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS company_name text,
+  ADD COLUMN IF NOT EXISTS nickname text,
+  ADD COLUMN IF NOT EXISTS customer_type text,
+  ADD COLUMN IF NOT EXISTS subtype text,
+  ADD COLUMN IF NOT EXISTS max_discount numeric NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS billing_address text,
+  ADD COLUMN IF NOT EXISTS billing_address2 text,
+  ADD COLUMN IF NOT EXISTS billing_city text,
+  ADD COLUMN IF NOT EXISTS billing_postal_code text,
+  ADD COLUMN IF NOT EXISTS billing_country text DEFAULT 'PT',
+  ADD COLUMN IF NOT EXISTS billing_district text,
+  ADD COLUMN IF NOT EXISTS shipping_same_as_billing boolean NOT NULL DEFAULT true,
+  ADD COLUMN IF NOT EXISTS shipping_address text,
+  ADD COLUMN IF NOT EXISTS shipping_address2 text,
+  ADD COLUMN IF NOT EXISTS shipping_city text,
+  ADD COLUMN IF NOT EXISTS shipping_postal_code text,
+  ADD COLUMN IF NOT EXISTS shipping_country text,
+  ADD COLUMN IF NOT EXISTS shipping_district text,
+  ADD COLUMN IF NOT EXISTS exclude_from_calls boolean NOT NULL DEFAULT false;

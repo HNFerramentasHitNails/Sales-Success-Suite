@@ -1,0 +1,19 @@
+project_id = "xijsepmqpjlwmkigsvfl"
+
+[functions.inbound-webhook]
+verify_jwt = false
+
+[functions.stripe-webhook]
+verify_jwt = false
+
+[functions.auto-invoice]
+verify_jwt = false
+
+[functions.platform-stripe-webhook]
+verify_jwt = false
+
+[functions.validate-vat]
+verify_jwt = true
+
+[functions.ai-agent]
+verify_jwt = true
