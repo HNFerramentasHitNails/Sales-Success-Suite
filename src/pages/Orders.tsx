@@ -61,7 +61,22 @@ export default function Orders() {
   const [issuingFor, setIssuingFor] = useState<string | null>(null);
   const [payingWalletFor, setPayingWalletFor] = useState<string | null>(null);
   const [walletByCustomer, setWalletByCustomer] = useState<Record<string, number>>({});
+  const [certifiedInvoicing, setCertifiedInvoicing] = useState(false);
   const currency = activeOrg?.currency || "EUR";
+
+  useEffect(() => {
+    if (!activeOrg) { setCertifiedInvoicing(false); return; }
+    supabase.from("connections")
+      .select("status, connector_definitions(category, is_certified)")
+      .eq("organization_id", activeOrg.id).eq("status", "active")
+      .then(({ data }) => {
+        const active = (data ?? []).some((c) => {
+          const d = (c as { connector_definitions?: { category?: string; is_certified?: boolean } }).connector_definitions;
+          return d?.category === "invoicing" && !!d?.is_certified;
+        });
+        setCertifiedInvoicing(active);
+      });
+  }, [activeOrg?.id]);
 
   const load = useCallback(async () => {
     if (!activeOrg) return;
@@ -397,10 +412,11 @@ export default function Orders() {
                           </Button>
                         )}
                         {canInvoice && (
-                          <Button size="sm" variant="outline" disabled={issuingFor === o.id}
-                            onClick={() => issueInvoice(o)} title="Emitir fatura">
+                          <Button size="sm" variant="outline" disabled={issuingFor === o.id || moloniBusy === o.id}
+                            onClick={() => certifiedInvoicing ? emitMoloni(o) : issueInvoice(o)}
+                            title={certifiedInvoicing ? "Emitir fatura certificada no Moloni" : "Emitir fatura"}>
                             <FileText className="h-4 w-4 mr-1" />
-                            {issuingFor === o.id ? "A emitir…" : "Emitir fatura"}
+                            {(issuingFor === o.id || moloniBusy === o.id) ? "A emitir…" : (certifiedInvoicing ? "Emitir fatura (Moloni)" : "Emitir fatura")}
                           </Button>
                         )}
                         {activeInvoice?.pdf_url && (
@@ -427,11 +443,6 @@ export default function Orders() {
                               </a>
                             </Button>
                           </>
-                        )}
-                        {isAdmin && ["confirmada", "paga", "faturada"].includes(o.status) && (
-                        <Button size="sm" variant="ghost" title="Emitir no Moloni" disabled={moloniBusy === o.id} onClick={() => emitMoloni(o)}>
-                          {moloniBusy === o.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
-                        </Button>
                         )}
                         {isAdmin && o.status !== "cancelada" && (
                         <Button size="sm" variant="ghost" title="Cancelar encomenda" onClick={() => remove(o)}>
