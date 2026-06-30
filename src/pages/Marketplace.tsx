@@ -20,8 +20,24 @@ type Result = {
 };
 
 const CATEGORIES = ["Restaurante", "Salão de Beleza", "Cabeleireiro", "Clínica", "Ginásio", "Hotel", "Imobiliária", "Advogados", "Contabilidade", "Marketing", "Consultoria", "Pizza", "Outra"];
-// Categorias orientadas a potenciais revendedores (negócios que podem revender os seus produtos).
-const RESELLER_CATEGORIES = ["Salão de unhas", "Salão de Beleza", "Cabeleireiro", "Centro de estética", "Spa", "Perfumaria", "Loja de cosmética", "Parafarmácia", "Loja de produtos de beleza", "Grossista de cosmética", "Academia de beleza", "Outra"];
+// Categorias orientadas a potenciais revendedores (negócios que podem revender os seus produtos
+// de unhas/beleza). Ordenadas do mais ao menos relevante para o setor.
+const RESELLER_CATEGORIES = [
+  "Salão de unhas",
+  "Manicure e pedicure",
+  "Salão de beleza",
+  "Cabeleireiro",
+  "Centro de estética",
+  "Podologia",
+  "Spa",
+  "Academia de beleza",
+  "Loja de produtos de beleza",
+  "Loja de cosmética",
+  "Perfumaria",
+  "Parafarmácia",
+  "Grossista de cosmética",
+  "Outra",
+];
 const COUNTRIES = ["Portugal", "Brasil", "Estados Unidos", "Espanha", "Reino Unido", "México", "Colômbia", "Peru", "Chile", "Equador", "Venezuela", "Costa Rica", "República Dominicana", "El Salvador", "Guatemala", "Honduras", "Nicarágua"];
 
 export default function Marketplace() {
