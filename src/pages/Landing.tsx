@@ -489,19 +489,38 @@ export default function Landing() {
 
       {/* Footer */}
       <footer className="border-t mt-auto">
-        <div className="container-app py-10 flex flex-col md:flex-row gap-6 items-center justify-between">
-          <div className="flex items-center gap-2 font-display font-semibold">
-            <span className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
-              <Dna className="h-4 w-4" />
-            </span>
-            <span>Sales Success Suite</span>
+        <div className="container-app py-10 space-y-8">
+          <div className="flex flex-col md:flex-row gap-6 items-center justify-between">
+            <div className="flex items-center gap-2 font-display font-semibold">
+              <span className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
+                <Dna className="h-4 w-4" />
+              </span>
+              <span>Sales Success Suite</span>
+            </div>
+            <nav className="flex gap-6 text-sm text-muted-foreground">
+              <a href="#funcionalidades" className="hover:text-foreground">Funcionalidades</a>
+              <a href="#precos" className="hover:text-foreground">Preços</a>
+              <Link to="/auth" className="hover:text-foreground">Entrar</Link>
+            </nav>
           </div>
-          <nav className="flex gap-6 text-sm text-muted-foreground">
-            <a href="#funcionalidades" className="hover:text-foreground">Funcionalidades</a>
-            <a href="#precos" className="hover:text-foreground">Preços</a>
-            <Link to="/auth" className="hover:text-foreground">Entrar</Link>
-          </nav>
-          <div className="text-sm text-muted-foreground">© 2026 Sales Success Suite</div>
+          <div className="flex flex-col md:flex-row gap-4 items-center justify-between border-t pt-6">
+            <nav className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-muted-foreground">
+              <Link to="/privacidade" className="hover:text-foreground">Privacidade</Link>
+              <Link to="/termos" className="hover:text-foreground">Termos</Link>
+              <Link to="/cookies" className="hover:text-foreground">Cookies</Link>
+              <Link to="/aviso-legal" className="hover:text-foreground">Aviso Legal</Link>
+              <Link to="/subprocessadores" className="hover:text-foreground">Subprocessadores</Link>
+              <Link to="/dpa" className="hover:text-foreground">DPA</Link>
+              <button
+                type="button"
+                className="hover:text-foreground"
+                onClick={() => window.dispatchEvent(new Event("app:open-cookie-settings"))}
+              >
+                Definições de cookies
+              </button>
+            </nav>
+            <div className="text-sm text-muted-foreground">© 2026 Sales Success Suite</div>
+          </div>
         </div>
       </footer>
     </div>

@@ -59,6 +59,13 @@ import Inbox from "@/pages/Inbox";
 import SettingsHub from "@/pages/SettingsHub";
 import RequireFeature from "@/components/auth/RequireFeature";
 import NotFound from "@/pages/NotFound";
+import CookieConsent from "@/components/CookieConsent";
+import PoliticaPrivacidade from "@/pages/legal/PoliticaPrivacidade";
+import TermosCondicoes from "@/pages/legal/TermosCondicoes";
+import PoliticaCookies from "@/pages/legal/PoliticaCookies";
+import AvisoLegal from "@/pages/legal/AvisoLegal";
+import Subprocessadores from "@/pages/legal/Subprocessadores";
+import DPA from "@/pages/legal/DPA";
 
 const queryClient = new QueryClient();
 
@@ -70,10 +77,19 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <OrganizationProvider>
+            <CookieConsent />
             <Routes>
               <Route path="/" element={<Landing />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/reset-password" element={<ResetPassword />} />
+              {/* Páginas legais públicas (sem autenticação) */}
+              <Route path="/privacidade" element={<PoliticaPrivacidade />} />
+              <Route path="/politica-de-privacidade" element={<Navigate to="/privacidade" replace />} />
+              <Route path="/termos" element={<TermosCondicoes />} />
+              <Route path="/cookies" element={<PoliticaCookies />} />
+              <Route path="/aviso-legal" element={<AvisoLegal />} />
+              <Route path="/subprocessadores" element={<Subprocessadores />} />
+              <Route path="/dpa" element={<DPA />} />
               <Route
                 path="/onboarding"
                 element={
