@@ -124,8 +124,12 @@ Deno.serve(async (req) => {
 
     // settings de IA da org (reutiliza DeepSeek/Anthropic)
     const { data: settings } = await admin
-      .from("ai_provider_settings").select("provider, model, api_key").eq("organization_id", organization_id).maybeSingle();
+      .from("ai_provider_settings").select("provider, model, api_key, intl_transfer_ack_at").eq("organization_id", organization_id).maybeSingle();
     const provider = settings?.provider ?? "deepseek";
+    // RGPD Cap. V — exige declaração de transferência internacional para fornecedores fora da UE.
+    if (provider === "deepseek" && !settings?.intl_transfer_ack_at) {
+      return json({ error: "intl_transfer_not_acknowledged", message: "Aceita a declaração de transferência internacional nas Definições de IA." });
+    }
     const orgKey = (settings?.api_key ?? "").trim();
     let apiKey = orgKey;
     if (provider === "deepseek" && !apiKey) apiKey = Deno.env.get("DEEPSEEK_API_KEY") ?? "";

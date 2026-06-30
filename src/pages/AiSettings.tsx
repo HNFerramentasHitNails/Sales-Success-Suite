@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Bot, Loader2, ShieldCheck } from "lucide-react";
+import { Bot, Loader2, ShieldCheck, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { PageHeader } from "@/components/ui/page-header";
@@ -11,7 +11,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Switch } from "@/components/ui/switch";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+
+// Fornecedores fora da UE sem decisão de adequação — exigem declaração explícita.
+const NON_EU_PROVIDERS = new Set(["deepseek"]);
 
 type Provider = "deepseek" | "anthropic" | "openai";
 
@@ -26,6 +30,7 @@ export default function AiSettings() {
   const [model, setModel] = useState("");
   const [apiKey, setApiKey] = useState("");
   const [hasKey, setHasKey] = useState(false);
+  const [intlAck, setIntlAck] = useState(false);
   const [testReply, setTestReply] = useState<string | null>(null);
 
   useEffect(() => {
@@ -36,10 +41,11 @@ export default function AiSettings() {
       if (error) {
         toast.error("Erro ao carregar configuração de IA");
       } else if (data && data.length > 0) {
-        const row = data[0] as { provider: string; model: string | null; has_key: boolean };
+        const row = data[0] as { provider: string; model: string | null; has_key: boolean; intl_transfer_ack: boolean };
         setProvider(((row.provider as Provider) || "deepseek"));
         setModel(row.model ?? "");
         setHasKey(!!row.has_key);
+        setIntlAck(!!row.intl_transfer_ack);
       }
       setLoading(false);
     })();
@@ -54,14 +60,21 @@ export default function AiSettings() {
       ? "gpt-4o-mini"
       : "deepseek-v4-flash";
 
+  const needsAck = NON_EU_PROVIDERS.has(provider);
+
   const handleSave = async () => {
     if (!activeOrg?.id) return;
+    if (needsAck && !intlAck) {
+      toast.warning("Tem de aceitar a declaração de transferência internacional para usar este fornecedor.");
+      return;
+    }
     setSaving(true);
     const { error } = await supabase.rpc("set_ai_settings", {
       _org_id: activeOrg.id,
       _provider: provider,
       _model: model || null,
       _api_key: apiKey ? apiKey : null,
+      _intl_transfer_ack: needsAck ? intlAck : null,
     });
     setSaving(false);
     if (error) {
@@ -93,6 +106,11 @@ export default function AiSettings() {
     if (res?.error === "ai_not_configured") {
       toast.warning("Configura primeiro a chave de IA");
       setTestReply("Configura primeiro a chave de IA.");
+      return;
+    }
+    if (res?.error === "intl_transfer_not_acknowledged") {
+      toast.warning("Aceita a declaração de transferência internacional para usar este fornecedor.");
+      setTestReply("Este fornecedor processa dados fora da UE. Aceita a declaração e guarda antes de testar.");
       return;
     }
     if (res?.error === "rate_limited" || res?.error === "provider_error") {
@@ -151,11 +169,31 @@ export default function AiSettings() {
               </div>
 
               {provider === "deepseek" && (
-                <Alert>
-                  <AlertDescription>
-                    Sem configuração necessária — usa o DeepSeek incluído na plataforma. Podes opcionalmente fornecer a tua própria chave DeepSeek.
-                  </AlertDescription>
-                </Alert>
+                <>
+                  <Alert>
+                    <AlertDescription>
+                      Sem configuração necessária — usa o DeepSeek incluído na plataforma. Podes opcionalmente fornecer a tua própria chave DeepSeek.
+                    </AlertDescription>
+                  </Alert>
+                  <Alert variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>Transferência internacional de dados</AlertTitle>
+                    <AlertDescription className="space-y-3">
+                      <p>
+                        Este fornecedor processa dados <strong>fora da União Europeia (China)</strong>, sem decisão
+                        de adequação da UE. Ao ativar, declara ter base legal para a transferência e que evita
+                        enviar dados pessoais desnecessários nos pedidos. Enquanto não aceitar, as funcionalidades
+                        de IA com este fornecedor ficam <strong>bloqueadas</strong>.
+                      </p>
+                      <label className="flex items-start gap-2 text-foreground">
+                        <Switch checked={intlAck} onCheckedChange={setIntlAck} className="mt-0.5" />
+                        <span className="text-sm">
+                          Declaro ter base legal para a transferência internacional e autorizo o uso deste fornecedor.
+                        </span>
+                      </label>
+                    </AlertDescription>
+                  </Alert>
+                </>
               )}
 
               <div className="grid gap-2 max-w-sm">
@@ -226,7 +264,7 @@ export default function AiSettings() {
               )}
 
               <div className="flex flex-wrap gap-2 pt-2">
-                <Button onClick={handleSave} disabled={saving}>
+                <Button onClick={handleSave} disabled={saving || (needsAck && !intlAck)}>
                   {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                   Guardar
                 </Button>

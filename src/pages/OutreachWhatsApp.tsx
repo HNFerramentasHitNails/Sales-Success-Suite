@@ -173,6 +173,8 @@ export default function OutreachWhatsApp() {
         <AlertDescription>
           A API key do Evolution é guardada de forma segura no servidor e nunca é devolvida ao navegador.
           O uso de WhatsApp não-oficial tem risco de bloqueio — o aquecimento gradual ajuda a proteger o número.
+          O recurso a APIs não oficiais pode violar os Termos da Meta; a decisão e o risco são da exclusiva
+          responsabilidade do cliente.
         </AlertDescription>
       </Alert>
 

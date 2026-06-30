@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_deletion_requests: {
+        Row: {
+          id: string
+          processed_at: string | null
+          reason: string | null
+          requested_at: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          processed_at?: string | null
+          reason?: string | null
+          requested_at?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          processed_at?: string | null
+          reason?: string | null
+          requested_at?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       achievements: {
         Row: {
           created_at: string
@@ -333,6 +360,8 @@ export type Database = {
         Row: {
           api_key: string | null
           id: string
+          intl_transfer_ack_at: string | null
+          intl_transfer_ack_by: string | null
           model: string | null
           organization_id: string
           provider: string
@@ -341,6 +370,8 @@ export type Database = {
         Insert: {
           api_key?: string | null
           id?: string
+          intl_transfer_ack_at?: string | null
+          intl_transfer_ack_by?: string | null
           model?: string | null
           organization_id: string
           provider?: string
@@ -349,6 +380,8 @@ export type Database = {
         Update: {
           api_key?: string | null
           id?: string
+          intl_transfer_ack_at?: string | null
+          intl_transfer_ack_by?: string | null
           model?: string | null
           organization_id?: string
           provider?: string
@@ -2565,6 +2598,7 @@ export type Database = {
         Row: {
           city: string | null
           company: string | null
+          consent_notes: string | null
           country: string | null
           created_at: string
           created_by: string | null
@@ -2574,8 +2608,11 @@ export type Database = {
           full_name: string | null
           has_whatsapp: boolean
           id: string
+          legal_basis: string | null
           name: string
           niche: string | null
+          opted_out: boolean
+          opted_out_at: string | null
           organization_id: string
           phone: string | null
           prospect_id: string | null
@@ -2588,6 +2625,7 @@ export type Database = {
         Insert: {
           city?: string | null
           company?: string | null
+          consent_notes?: string | null
           country?: string | null
           created_at?: string
           created_by?: string | null
@@ -2597,8 +2635,11 @@ export type Database = {
           full_name?: string | null
           has_whatsapp?: boolean
           id?: string
+          legal_basis?: string | null
           name: string
           niche?: string | null
+          opted_out?: boolean
+          opted_out_at?: string | null
           organization_id: string
           phone?: string | null
           prospect_id?: string | null
@@ -2611,6 +2652,7 @@ export type Database = {
         Update: {
           city?: string | null
           company?: string | null
+          consent_notes?: string | null
           country?: string | null
           created_at?: string
           created_by?: string | null
@@ -2620,8 +2662,11 @@ export type Database = {
           full_name?: string | null
           has_whatsapp?: boolean
           id?: string
+          legal_basis?: string | null
           name?: string
           niche?: string | null
+          opted_out?: boolean
+          opted_out_at?: string | null
           organization_id?: string
           phone?: string | null
           prospect_id?: string | null
@@ -2741,6 +2786,73 @@ export type Database = {
             columns: ["variation_id"]
             isOneToOne: false
             referencedRelation: "outreach_template_variations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      outreach_settings: {
+        Row: {
+          compliance_ack_at: string | null
+          compliance_ack_by: string | null
+          organization_id: string
+          updated_at: string
+        }
+        Insert: {
+          compliance_ack_at?: string | null
+          compliance_ack_by?: string | null
+          organization_id: string
+          updated_at?: string
+        }
+        Update: {
+          compliance_ack_at?: string | null
+          compliance_ack_by?: string | null
+          organization_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "outreach_settings_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      outreach_suppression: {
+        Row: {
+          channel: string
+          created_at: string
+          created_by: string | null
+          id: string
+          organization_id: string
+          reason: string | null
+          value: string
+        }
+        Insert: {
+          channel: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          organization_id: string
+          reason?: string | null
+          value: string
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          organization_id?: string
+          reason?: string | null
+          value?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "outreach_suppression_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -3260,6 +3372,11 @@ export type Database = {
           email: string | null
           full_name: string | null
           id: string
+          marketing_opt_in: boolean
+          marketing_opt_in_at: string | null
+          privacy_version: string | null
+          terms_accepted_at: string | null
+          terms_version: string | null
           updated_at: string
         }
         Insert: {
@@ -3268,6 +3385,11 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id: string
+          marketing_opt_in?: boolean
+          marketing_opt_in_at?: string | null
+          privacy_version?: string | null
+          terms_accepted_at?: string | null
+          terms_version?: string | null
           updated_at?: string
         }
         Update: {
@@ -3276,6 +3398,11 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          marketing_opt_in?: boolean
+          marketing_opt_in_at?: string | null
+          privacy_version?: string | null
+          terms_accepted_at?: string | null
+          terms_version?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -4416,6 +4543,7 @@ export type Database = {
         }
         Returns: number
       }
+      export_my_data: { Args: never; Returns: Json }
       generate_commission_statements: {
         Args: { _from: string; _org_id: string; _to: string }
         Returns: {
@@ -4442,6 +4570,7 @@ export type Database = {
         Args: { _org_id: string }
         Returns: {
           has_key: boolean
+          intl_transfer_ack: boolean
           model: string
           provider: string
         }[]
@@ -4636,8 +4765,19 @@ export type Database = {
         }[]
       }
       org_within_user_limit: { Args: { _org_id: string }; Returns: boolean }
+      outreach_ack_compliance: { Args: { _org_id: string }; Returns: undefined }
+      outreach_add_suppression: {
+        Args: {
+          _channel: string
+          _org_id: string
+          _reason?: string
+          _value: string
+        }
+        Returns: undefined
+      }
       outreach_can_write: { Args: { _org_id: string }; Returns: boolean }
       outreach_cron_tick: { Args: never; Returns: undefined }
+      outreach_lead_opt_out: { Args: { _lead_id: string }; Returns: undefined }
       pay_order_with_wallet: { Args: { _order_id: string }; Returns: Json }
       preview_order_vat: {
         Args: {
@@ -4685,6 +4825,7 @@ export type Database = {
       }
       refresh_org_nudges: { Args: { _org_id: string }; Returns: undefined }
       refresh_org_segments: { Args: { p_org: string }; Returns: number }
+      request_account_deletion: { Args: { _reason?: string }; Returns: string }
       resolve_order_vat_treatment: {
         Args: { p_order_id: string }
         Returns: undefined
@@ -4704,6 +4845,7 @@ export type Database = {
       set_ai_settings: {
         Args: {
           _api_key?: string
+          _intl_transfer_ack?: boolean
           _model?: string
           _org_id: string
           _provider: string

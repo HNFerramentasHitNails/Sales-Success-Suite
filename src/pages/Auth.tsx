@@ -5,9 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { LEGAL_VERSIONS } from "@/config/legal";
 
 export default function AuthPage() {
   const { user, loading } = useAuth();
@@ -17,6 +19,8 @@ export default function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [acceptTerms, setAcceptTerms] = useState(false);
+  const [marketingOptIn, setMarketingOptIn] = useState(false);
   const [busy, setBusy] = useState(false);
 
   if (loading) return null;
@@ -32,13 +36,24 @@ export default function AuthPage() {
 
   const handleSignup = async (e: FormEvent) => {
     e.preventDefault();
+    if (!acceptTerms) {
+      toast({ title: "Aceitação obrigatória", description: "Tem de aceitar os Termos e a Política de Privacidade.", variant: "destructive" });
+      return;
+    }
     setBusy(true);
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         emailRedirectTo: `${window.location.origin}/app/dashboard`,
-        data: { full_name: fullName },
+        data: {
+          full_name: fullName,
+          terms_accepted: true,
+          terms_version: LEGAL_VERSIONS.terms,
+          privacy_version: LEGAL_VERSIONS.privacy,
+          terms_accepted_at: new Date().toISOString(),
+          marketing_opt_in: marketingOptIn,
+        },
       },
     });
     setBusy(false);
@@ -130,7 +145,22 @@ export default function AuthPage() {
                   <Label htmlFor="su-password">Password</Label>
                   <Input id="su-password" type="password" minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} required />
                 </div>
-                <Button type="submit" className="w-full" disabled={busy}>
+                <div className="flex items-start gap-2 pt-1">
+                  <Checkbox id="accept-terms" checked={acceptTerms} onCheckedChange={(v) => setAcceptTerms(v === true)} className="mt-0.5" />
+                  <Label htmlFor="accept-terms" className="text-sm font-normal leading-snug text-muted-foreground">
+                    Li e aceito os{" "}
+                    <Link to="/termos" target="_blank" className="text-primary hover:underline">Termos &amp; Condições</Link>{" "}
+                    e a{" "}
+                    <Link to="/privacidade" target="_blank" className="text-primary hover:underline">Política de Privacidade</Link>.
+                  </Label>
+                </div>
+                <div className="flex items-start gap-2">
+                  <Checkbox id="marketing-optin" checked={marketingOptIn} onCheckedChange={(v) => setMarketingOptIn(v === true)} className="mt-0.5" />
+                  <Label htmlFor="marketing-optin" className="text-sm font-normal leading-snug text-muted-foreground">
+                    Aceito receber comunicações de marketing (opcional).
+                  </Label>
+                </div>
+                <Button type="submit" className="w-full" disabled={busy || !acceptTerms}>
                   Criar conta
                 </Button>
               </form>

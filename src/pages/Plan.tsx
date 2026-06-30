@@ -67,6 +67,17 @@ export default function Plan() {
   const [busy, setBusy] = useState<string | null>(null);
   const [priceInputs, setPriceInputs] = useState<Record<string, string>>({});
   const [savingPrice, setSavingPrice] = useState<string | null>(null);
+  const [platformAdmin, setPlatformAdmin] = useState(false);
+
+  // A configuração de faturação da plataforma só é visível a administradores da plataforma.
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      const uid = data.user?.id;
+      if (!uid) { setPlatformAdmin(false); return; }
+      supabase.from("platform_admins").select("user_id").eq("user_id", uid).maybeSingle()
+        .then(({ data: row }) => setPlatformAdmin(!!row));
+    });
+  }, []);
 
   const WEBHOOK_URL = "https://itynqpvwzlkovrvsbluw.supabase.co/functions/v1/platform-stripe-webhook";
 
@@ -351,6 +362,7 @@ export default function Plan() {
         </div>
       </div>
 
+      {platformAdmin && (
       <Card>
         <CardHeader>
           <CardTitle>Configuração de faturação (plataforma)</CardTitle>
@@ -404,6 +416,7 @@ export default function Plan() {
           </div>
         </CardContent>
       </Card>
+      )}
 
       <div className="text-xs text-muted-foreground">
         Precisa de algo diferente? <button className="underline" onClick={() => navigate("/app/settings")}>Contacte o suporte</button>.

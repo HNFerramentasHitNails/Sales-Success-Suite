@@ -170,6 +170,25 @@ async function processOrg(admin: any, orgId: string, resendKey: string, fallback
     const { data: lead } = await admin.from("outreach_leads").select("*").eq("id", tgt.lead_id).maybeSingle();
     if (!lead || lead.deleted_at) { await admin.from("outreach_campaign_targets").update({ status: "stopped" }).eq("id", tgt.id); continue; }
 
+    // Lista de supressão / opt-out (RGPD + Lei 41/2004) — não contactar.
+    const recipient = channel === "whatsapp"
+      ? digitsOnly(lead.phone || "")
+      : (lead.email || "").trim().toLowerCase();
+    if (lead.opted_out) {
+      await logMsg("suppressed", { error: "opted_out" });
+      await admin.from("outreach_campaign_targets").update({ status: "stopped" }).eq("id", tgt.id);
+      continue;
+    }
+    if (recipient) {
+      const { data: supp } = await admin.from("outreach_suppression")
+        .select("id").eq("organization_id", orgId).eq("channel", channel).eq("value", recipient).maybeSingle();
+      if (supp) {
+        await logMsg("suppressed", { error: "suppressed" });
+        await admin.from("outreach_campaign_targets").update({ status: "stopped" }).eq("id", tgt.id);
+        continue;
+      }
+    }
+
     // ---------- EMAIL ----------
     if (channel === "email") {
       if (emailState.status === "circuit_open") continue;

@@ -165,7 +165,7 @@ Deno.serve(async (req) => {
     // Carregar configuração de IA da org
     const { data: settings } = await admin
       .from("ai_provider_settings")
-      .select("provider, model, api_key")
+      .select("provider, model, api_key, intl_transfer_ack_at")
       .eq("organization_id", organization_id)
       .maybeSingle();
 
@@ -218,6 +218,12 @@ Deno.serve(async (req) => {
     const provider = settings?.provider ?? "deepseek";
     const model = settings?.model ?? "";
     const orgKey = settings?.api_key ?? "";
+
+    // RGPD Cap. V — fornecedores fora da UE sem decisão de adequação exigem
+    // declaração explícita de transferência internacional antes de qualquer envio.
+    if (provider === "deepseek" && !settings?.intl_transfer_ack_at) {
+      return jsonResponse({ error: "intl_transfer_not_acknowledged" });
+    }
 
     let result: { reply?: string; error?: string; message?: string };
 

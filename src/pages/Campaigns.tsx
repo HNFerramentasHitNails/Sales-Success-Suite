@@ -60,6 +60,15 @@ export default function Campaigns() {
   const [scheduleMode, setScheduleMode] = useState<"immediate" | "scheduled">("immediate");
   const [scheduledAt, setScheduledAt] = useState("");
   const [saving, setSaving] = useState(false);
+  const [complianceAck, setComplianceAck] = useState(false);
+  const [complianceOpen, setComplianceOpen] = useState(false);
+  const [complianceConfirm, setComplianceConfirm] = useState(false);
+
+  useEffect(() => {
+    if (!activeOrg) return;
+    supabase.from("outreach_settings").select("compliance_ack_at").eq("organization_id", activeOrg.id).maybeSingle()
+      .then(({ data }) => setComplianceAck(!!(data as { compliance_ack_at: string | null } | null)?.compliance_ack_at));
+  }, [activeOrg]);
 
   const load = useCallback(async () => {
     if (!activeOrg) return;
@@ -140,8 +149,19 @@ export default function Campaigns() {
     return true;
   };
 
+  const confirmCompliance = async () => {
+    if (!activeOrg || !complianceConfirm) return;
+    const { error } = await supabase.rpc("outreach_ack_compliance", { _org_id: activeOrg.id });
+    if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
+    setComplianceAck(true);
+    setComplianceOpen(false);
+    launch(false);
+  };
+
   const launch = async (asDraft = false) => {
     if (!activeOrg) return;
+    // RGPD + Lei 41/2004 — exigir aviso de conformidade antes do primeiro envio.
+    if (!asDraft && !complianceAck) { setComplianceConfirm(false); setComplianceOpen(true); return; }
     setSaving(true);
     try {
       const when = scheduleMode === "scheduled" && scheduledAt ? new Date(scheduledAt).toISOString() : new Date().toISOString();
@@ -498,6 +518,32 @@ export default function Campaigns() {
                 </>
               )}
             </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Aviso de conformidade antes do primeiro envio em massa */}
+      <Dialog open={complianceOpen} onOpenChange={setComplianceOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>Aviso de conformidade</DialogTitle></DialogHeader>
+          <div className="space-y-3 text-sm text-muted-foreground">
+            <p>
+              Antes de lançar campanhas, confirme que cumpre as regras de marketing eletrónico e proteção de dados:
+            </p>
+            <ul className="list-disc pl-5 space-y-1">
+              <li>Tem <strong>base legal</strong> para contactar cada destinatário (consentimento, interesse legítimo ou relação pré-contratual).</li>
+              <li>Respeita os pedidos de <strong>opt-out</strong> e a lista de supressão (não contactar).</li>
+              <li>Inclui forma de <strong>cancelar a subscrição</strong> nas comunicações.</li>
+              <li>O uso de <strong>WhatsApp não-oficial</strong> pode violar os Termos da Meta e tem risco de bloqueio — é da sua responsabilidade.</li>
+            </ul>
+            <label className="flex items-start gap-2 text-foreground pt-1">
+              <Checkbox checked={complianceConfirm} onCheckedChange={(v) => setComplianceConfirm(v === true)} className="mt-0.5" />
+              <span>Declaro que cumpro as regras acima e assumo a responsabilidade pelas comunicações enviadas.</span>
+            </label>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setComplianceOpen(false)}>Cancelar</Button>
+            <Button onClick={confirmCompliance} disabled={!complianceConfirm}>Confirmar e lançar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

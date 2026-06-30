@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as XLSX from "xlsx";
 import {
-  Users, Plus, Upload, Trash2, Search, RotateCcw, MessageCircle, ArrowUpRight, Loader2,
+  Users, Plus, Upload, Trash2, Search, RotateCcw, MessageCircle, ArrowUpRight, Loader2, BellOff,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/contexts/OrganizationContext";
@@ -47,7 +47,14 @@ const IMPORT_FIELDS = [
 const emptyForm = {
   name: "", full_name: "", email: "", phone: "", company: "",
   country: "Portugal", state: "", city: "", niche: "", has_whatsapp: false,
+  legal_basis: "consent",
 };
+
+const LEGAL_BASIS_OPTS = [
+  { v: "consent", l: "Consentimento" },
+  { v: "legitimate_interest", l: "Interesse legítimo" },
+  { v: "pre_contractual", l: "Relação pré-contratual" },
+] as const;
 
 export default function Leads() {
   const { activeOrg, role } = useOrganization();
@@ -69,6 +76,7 @@ export default function Leads() {
   // import
   const [importOpen, setImportOpen] = useState(false);
   const [importCountry, setImportCountry] = useState("Portugal");
+  const [importLegalBasis, setImportLegalBasis] = useState("legitimate_interest");
   const [importRows, setImportRows] = useState<Record<string, any>[]>([]);
   const [importHeaders, setImportHeaders] = useState<string[]>([]);
   const [mapping, setMapping] = useState<Record<string, string>>({});
@@ -134,6 +142,7 @@ export default function Leads() {
       city: form.city.trim() || null,
       niche: form.niche.trim() || null,
       has_whatsapp: form.has_whatsapp,
+      legal_basis: form.legal_basis,
       source: "manual",
     });
     setBusy(false);
@@ -170,6 +179,14 @@ export default function Leads() {
     toast({ title: "Lead promovido a prospect", description: "Disponível no funil de vendas." });
     load();
     return data;
+  };
+
+  const optOut = async (lead: Lead) => {
+    if (!window.confirm(`Marcar "${lead.name}" como não contactar? O email/telefone serão adicionados à lista de supressão.`)) return;
+    const { error } = await supabase.rpc("outreach_lead_opt_out", { _lead_id: lead.id });
+    if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
+    toast({ title: "Lead marcado como não contactar" });
+    load();
   };
 
   // ---- Import ----
@@ -219,6 +236,7 @@ export default function Leads() {
         state: get("state") || null,
         city: get("city") || null,
         country: importCountry || null,
+        legal_basis: importLegalBasis,
         source: "imported" as const,
       };
     }).filter(Boolean) as any[];
@@ -340,7 +358,16 @@ export default function Leads() {
                   <TableCell>{r.niche || "—"}</TableCell>
                   <TableCell className="text-sm">{[r.city, r.country].filter(Boolean).join(", ") || "—"}</TableCell>
                   <TableCell>{r.has_whatsapp ? <MessageCircle className="h-4 w-4 text-green-600" /> : "—"}</TableCell>
-                  <TableCell><Badge variant={STATUS_VARIANT[r.status] ?? "secondary"}>{STATUS_LABELS[r.status] ?? r.status}</Badge></TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1">
+                      <Badge variant={STATUS_VARIANT[r.status] ?? "secondary"}>{STATUS_LABELS[r.status] ?? r.status}</Badge>
+                      {(r as Lead & { opted_out?: boolean }).opted_out && (
+                        <Badge variant="outline" className="gap-1 text-destructive border-destructive/40" title="Não contactar">
+                          <BellOff className="h-3 w-3" /> Opt-out
+                        </Badge>
+                      )}
+                    </div>
+                  </TableCell>
                   <TableCell className="text-right space-x-1">
                     {showTrash ? (
                       isAdmin && <Button size="sm" variant="ghost" onClick={() => restore(r)}><RotateCcw className="h-4 w-4" /></Button>
@@ -349,6 +376,11 @@ export default function Leads() {
                         {canWrite && !r.prospect_id && (
                           <Button size="sm" variant="ghost" title="Promover a prospect" onClick={() => promote(r)}>
                             <ArrowUpRight className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {canWrite && !(r as Lead & { opted_out?: boolean }).opted_out && (
+                          <Button size="sm" variant="ghost" title="Marcar como não contactar (opt-out)" onClick={() => optOut(r)}>
+                            <BellOff className="h-4 w-4" />
                           </Button>
                         )}
                         {isAdmin && (
@@ -410,6 +442,14 @@ export default function Leads() {
               <Checkbox id="wa" checked={form.has_whatsapp} onCheckedChange={(v) => setForm({ ...form, has_whatsapp: !!v })} />
               <Label htmlFor="wa">Tem WhatsApp</Label>
             </div>
+            <div className="grid gap-1.5 col-span-2">
+              <Label>Base legal (RGPD)</Label>
+              <Select value={form.legal_basis} onValueChange={(v) => setForm({ ...form, legal_basis: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>{LEGAL_BASIS_OPTS.map((o) => <SelectItem key={o.v} value={o.v}>{o.l}</SelectItem>)}</SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">Base legal para contactar este lead.</p>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setFormOpen(false)}>Cancelar</Button>
@@ -423,12 +463,21 @@ export default function Leads() {
         <DialogContent className="max-w-2xl">
           <DialogHeader><DialogTitle>Importar Leads (CSV / Excel)</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div className="grid gap-1.5 max-w-xs">
-              <Label>País (formatação de telefones)</Label>
-              <Select value={importCountry} onValueChange={setImportCountry}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{COUNTRIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
-              </Select>
+            <div className="flex flex-wrap gap-4">
+              <div className="grid gap-1.5 max-w-xs flex-1 min-w-[180px]">
+                <Label>País (formatação de telefones)</Label>
+                <Select value={importCountry} onValueChange={setImportCountry}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{COUNTRIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-1.5 max-w-xs flex-1 min-w-[180px]">
+                <Label>Base legal (RGPD)</Label>
+                <Select value={importLegalBasis} onValueChange={setImportLegalBasis}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{LEGAL_BASIS_OPTS.map((o) => <SelectItem key={o.v} value={o.v}>{o.l}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
             </div>
             <div className="grid gap-1.5">
               <Label>Ficheiro (cabeçalhos na 1ª linha)</Label>

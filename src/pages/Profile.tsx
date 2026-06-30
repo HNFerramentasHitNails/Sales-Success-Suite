@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/ui/page-header";
@@ -8,7 +9,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
-import { Upload, User as UserIcon, Loader2 } from "lucide-react";
+import { Upload, User as UserIcon, Loader2, Download, ShieldAlert, Trash2 } from "lucide-react";
+
+const LEGAL_LINKS = [
+  { to: "/privacidade", label: "Privacidade" },
+  { to: "/termos", label: "Termos" },
+  { to: "/cookies", label: "Cookies" },
+  { to: "/aviso-legal", label: "Aviso Legal" },
+  { to: "/subprocessadores", label: "Subprocessadores" },
+  { to: "/dpa", label: "DPA" },
+];
 
 function initials(name: string | null | undefined, email: string | null | undefined) {
   const src = (name || email || "").trim();
@@ -43,6 +53,51 @@ export default function Profile() {
   const [newEmail, setNewEmail] = useState("");
   const [newPass, setNewPass] = useState("");
   const [confirmPass, setConfirmPass] = useState("");
+
+  const [exporting, setExporting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deletionPending, setDeletionPending] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("account_deletion_requests")
+      .select("id")
+      .in("status", ["pending", "processing"])
+      .maybeSingle()
+      .then(({ data }) => setDeletionPending(!!data));
+  }, [user]);
+
+  async function exportData() {
+    setExporting(true);
+    const { data, error } = await supabase.rpc("export_my_data");
+    setExporting(false);
+    if (error) {
+      toast.error("Não foi possível exportar os dados");
+      return;
+    }
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `os-meus-dados-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("Dados exportados");
+  }
+
+  async function requestDeletion() {
+    if (!window.confirm("Pretende pedir a eliminação da sua conta? O pedido será processado no prazo máximo de 30 dias. Esta ação pode ser revertida contactando o suporte enquanto não for concluída.")) return;
+    setDeleting(true);
+    const { error } = await supabase.rpc("request_account_deletion", { _reason: null });
+    setDeleting(false);
+    if (error) {
+      toast.error("Não foi possível registar o pedido");
+      return;
+    }
+    setDeletionPending(true);
+    toast.success("Pedido de eliminação registado. Responderemos em até 30 dias.");
+  }
 
   useEffect(() => {
     let active = true;
@@ -289,6 +344,53 @@ export default function Profile() {
             {savingPass ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
             Alterar palavra-passe
           </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Privacidade e dados</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="space-y-2">
+            <Label>Exportar os meus dados</Label>
+            <p className="text-sm text-muted-foreground">
+              Descarrega um ficheiro com os teus dados pessoais (perfil e pertenças a organizações), nos
+              termos do RGPD (arts. 15.º e 20.º).
+            </p>
+            <Button variant="outline" onClick={exportData} disabled={exporting}>
+              {exporting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+              Exportar (JSON)
+            </Button>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Eliminação da conta</Label>
+            <p className="text-sm text-muted-foreground">
+              Podes pedir a eliminação da tua conta. O pedido é processado no prazo máximo de 30 dias.
+            </p>
+            {deletionPending ? (
+              <p className="inline-flex items-center gap-2 text-sm text-amber-600 dark:text-amber-400">
+                <ShieldAlert className="h-4 w-4" /> Já existe um pedido de eliminação em curso.
+              </p>
+            ) : (
+              <Button variant="destructive" onClick={requestDeletion} disabled={deleting}>
+                {deleting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Trash2 className="h-4 w-4 mr-2" />}
+                Pedir eliminação da conta
+              </Button>
+            )}
+          </div>
+
+          <div className="space-y-2 border-t pt-4">
+            <Label>Documentos legais</Label>
+            <nav className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
+              {LEGAL_LINKS.map((l) => (
+                <Link key={l.to} to={l.to} target="_blank" className="hover:text-foreground underline">
+                  {l.label}
+                </Link>
+              ))}
+            </nav>
+          </div>
         </CardContent>
       </Card>
     </div>
