@@ -81,7 +81,8 @@ Deno.serve(async (req) => {
     for (const t of (Array.isArray(taxes) ? taxes : [])) { const val = Number(t?.value); const id = posInt(t?.tax_id); if (id && Number.isFinite(val)) taxByRate.set(Math.round(val * 100) / 100, id); }
 
     const c = (order as any).customers ?? {};
-    const vat = (c.vat_number && String(c.vat_number).trim()) || "999999990";
+    // Moloni quer o NIF só com dígitos (sem prefixo de país tipo "PT").
+    const vat = ((c.vat_number && String(c.vat_number).trim()) || "999999990").replace(/^[A-Za-z]{2}(?=\d)/, "");
     let custId: number | null = null;
     try { const f = await mPost("/customers/getByVat/", token, { company_id: companyId, vat }); custId = posInt(Array.isArray(f) ? f[0]?.customer_id : f?.customer_id); } catch { /* */ }
     if (!custId) {
