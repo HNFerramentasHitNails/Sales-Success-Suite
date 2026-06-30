@@ -81,8 +81,19 @@ Deno.serve(async (req) => {
     for (const t of (Array.isArray(taxes) ? taxes : [])) { const val = Number(t?.value); const id = posInt(t?.tax_id); if (id && Number.isFinite(val)) taxByRate.set(Math.round(val * 100) / 100, id); }
 
     // Unidade de medida (Moloni exige unit_id nas linhas).
-    let unitId: number | null = null;
-    try { const units = await mPost("/measurementUnits/getAll/", token, { company_id: companyId }); unitId = posInt(Array.isArray(units) ? units[0]?.unit_id : null); } catch { /* */ }
+    // Unidade de medida: usa a configurada, senão a "unidade" (evita escolher "horas"); fallback à 1.ª.
+    let unitId: number | null = posInt(cfg.unit_id);
+    if (!unitId) {
+      try {
+        const units = await mPost("/measurementUnits/getAll/", token, { company_id: companyId });
+        const arr = Array.isArray(units) ? units : [];
+        const pick = arr.find((u: any) => {
+          const s = (String(u?.name ?? "") + " " + String(u?.short_name ?? "")).toLowerCase();
+          return s.includes("unid") || /(^|\s)(un|uni|unit)(\s|\.|$)/.test(s);
+        }) ?? arr[0];
+        unitId = posInt(pick?.unit_id);
+      } catch { /* */ }
+    }
 
     // Categoria de produto (necessária para criar produtos no catálogo).
     let categoryId = posInt(cfg.category_id);
@@ -136,7 +147,8 @@ Deno.serve(async (req) => {
     for (const l of ((order as any).order_lines ?? [])) {
       const rate = Number(l.tax_rate ?? 0);
       const name = (l.description || "Artigo").toString().slice(0, 250);
-      const price = Number(l.unit_price ?? 0);
+      // Preço com 5 casas decimais (igual ao Moloni) para evitar divergências de arredondamento.
+      const price = Number(Number(l.unit_price ?? 0).toFixed(5));
       const taxId = rate > 0 ? taxByRate.get(Math.round(rate * 100) / 100) : null;
       if (rate > 0 && !taxId) return json({ ok: false, error: "no_tax", message: `O Moloni nao tem o imposto a ${rate}% configurado nesta empresa. Cria a taxa de IVA no Moloni e tenta de novo.` });
       const taxPart: Record<string, unknown> = taxId
@@ -144,7 +156,7 @@ Deno.serve(async (req) => {
         : { exemption_reason: EXEMPTION[treat ?? ""] ?? "M99" };
 
       // Catálogo: encontra ou cria o produto (Moloni exige product_id nas linhas).
-      const reference = ("SSS-" + name.replace(/[^A-Za-z0-9]+/g, "-")).slice(0, 28) + "-" + Math.round(price * 100);
+      const reference = ("SSS-" + name.replace(/[^A-Za-z0-9]+/g, "-")).slice(0, 24) + "-" + Math.round(price * 100000);
       let productId: number | null = null;
       try { const f = await mPost("/products/getByReference/", token, { company_id: companyId, reference }); productId = posInt(Array.isArray(f) ? f[0]?.product_id : f?.product_id); } catch { /* */ }
       if (!productId && categoryId && unitId) {
