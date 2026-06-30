@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -52,6 +54,8 @@ export default function Orders() {
   const [importOpen, setImportOpen] = useState(false);
   const [editing, setEditing] = useState<Order | null>(null);
   const [moloniBusy, setMoloniBusy] = useState<string | null>(null);
+  const [walletDialog, setWalletDialog] = useState<{ order: Row; max: number; balance: number; outstanding: number } | null>(null);
+  const [walletAmount, setWalletAmount] = useState("");
   const [stripeActive, setStripeActive] = useState(false);
   const [generatingFor, setGeneratingFor] = useState<string | null>(null);
   const [issuingFor, setIssuingFor] = useState<string | null>(null);
@@ -199,10 +203,19 @@ export default function Orders() {
     }
   }
 
-  async function payWithWallet(o: Row) {
+  function openWalletDialog(o: Row) {
+    const balance = o.customer_id ? (walletByCustomer[o.customer_id] ?? 0) : 0;
+    const outstanding = Math.max(Number(o.total) - Number((o as any).wallet_balance_applied ?? 0), 0);
+    const max = Math.min(balance, outstanding);
+    setWalletDialog({ order: o, max, balance, outstanding });
+    setWalletAmount(max.toFixed(2));
+  }
+
+  async function payWithWallet(o: Row, amount?: number) {
     setPayingWalletFor(o.id);
-    const { data, error } = await supabase.rpc("pay_order_with_wallet", { _order_id: o.id });
+    const { data, error } = await supabase.rpc("pay_order_with_wallet", { _order_id: o.id, _amount: amount ?? null } as never);
     setPayingWalletFor(null);
+    setWalletDialog(null);
     if (error) {
       const map: Record<string, string> = {
         no_balance: "O cliente não tem saldo na carteira.",
@@ -338,7 +351,7 @@ export default function Orders() {
                       <div className="flex items-center justify-end gap-1">
                         {canPayWallet && (
                           <Button size="sm" variant="outline" disabled={payingWalletFor === o.id}
-                            onClick={() => payWithWallet(o)}
+                            onClick={() => openWalletDialog(o)}
                             title={`Pagar com a carteira do cliente (saldo ${fmtMoney(walletBal, o.currency || currency)})`}>
                             {payingWalletFor === o.id
                               ? <Loader2 className="h-4 w-4 mr-1 animate-spin" />
@@ -430,6 +443,38 @@ export default function Orders() {
         onOpenChange={setImportOpen}
         onImported={load}
       />
+
+      <Dialog open={!!walletDialog} onOpenChange={(o) => { if (!o) setWalletDialog(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Pagar com a carteira</DialogTitle>
+          </DialogHeader>
+          {walletDialog && (
+            <div className="space-y-3">
+              <div className="text-sm text-muted-foreground space-y-1">
+                <div>Encomenda <span className="font-medium text-foreground">{walletDialog.order.order_number}</span></div>
+                <div>Saldo da carteira: <span className="font-medium text-foreground">{fmtMoney(walletDialog.balance, walletDialog.order.currency || currency)}</span></div>
+                <div>Em dívida: <span className="font-medium text-foreground">{fmtMoney(walletDialog.outstanding, walletDialog.order.currency || currency)}</span></div>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="wallet_amount">Quanto aplicar da carteira</Label>
+                <Input id="wallet_amount" type="number" step="0.01" min="0" max={walletDialog.max}
+                  value={walletAmount} onChange={(e) => setWalletAmount(e.target.value)} />
+                <p className="text-[11px] text-muted-foreground">Máximo aplicável: {fmtMoney(walletDialog.max, walletDialog.order.currency || currency)}.</p>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setWalletDialog(null)}>Cancelar</Button>
+            <Button
+              disabled={!walletDialog || payingWalletFor === walletDialog?.order.id || !(Number(walletAmount) > 0)}
+              onClick={() => walletDialog && payWithWallet(walletDialog.order, Math.min(Number(walletAmount) || 0, walletDialog.max))}>
+              {payingWalletFor === walletDialog?.order.id ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Wallet className="h-4 w-4 mr-2" />}
+              Aplicar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

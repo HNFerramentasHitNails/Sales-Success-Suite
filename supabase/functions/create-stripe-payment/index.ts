@@ -36,10 +36,12 @@ Deno.serve(async (req) => {
 
   const admin = adminClient();
 
+  try {
+
   // Fetch order
   const { data: order, error: orderErr } = await admin
     .from("orders")
-    .select("id, organization_id, order_number, status, total, currency, payment_url, payment_ref")
+    .select("id, organization_id, order_number, status, total, currency, payment_url, payment_ref, wallet_balance_applied")
     .eq("id", orderId)
     .maybeSingle();
   if (orderErr || !order) return json(404, { error: "order_not_found" });
@@ -83,9 +85,12 @@ Deno.serve(async (req) => {
   const stripeKey = secrets.secret_key;
   if (!stripeKey) return json(400, { error: "stripe_secret_missing" });
 
+  // Valor em dívida = total − carteira já aplicada (não cobrar o que a carteira pagou).
   const total = Number(order.total);
-  if (!(total > 0)) return json(400, { error: "invalid_total" });
-  const amountCents = Math.round(total * 100);
+  const walletApplied = Number((order as { wallet_balance_applied?: number }).wallet_balance_applied ?? 0);
+  const outstanding = Math.max(total - walletApplied, 0);
+  if (!(outstanding > 0)) return json(400, { error: "already_paid", message: "A encomenda já está paga (carteira cobriu o total)." });
+  const amountCents = Math.round(outstanding * 100);
   const currency = (order.currency || "EUR").toLowerCase();
 
   // Build success/cancel URLs (use Origin header if available)
@@ -183,4 +188,9 @@ Deno.serve(async (req) => {
   });
 
   return json(200, { payment_url: paymentUrl, payment_ref: sessionId });
+
+  } catch (e) {
+    console.error("create-stripe-payment fatal:", (e as Error).message);
+    return json(500, { error: "internal_error", message: (e as Error).message });
+  }
 });
