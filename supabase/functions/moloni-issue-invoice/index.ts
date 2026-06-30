@@ -85,10 +85,21 @@ Deno.serve(async (req) => {
     let custId: number | null = null;
     try { const f = await mPost("/customers/getByVat/", token, { company_id: companyId, vat }); custId = posInt(Array.isArray(f) ? f[0]?.customer_id : f?.customer_id); } catch { /* */ }
     if (!custId) {
-      const created = await mPost("/customers/insert/", token, { company_id: companyId, vat, number: vat, name: c.name || "Consumidor Final", language_id: 1, address: c.address || "Desconhecido", city: c.city || "Desconhecido", zip_code: c.postal_code || "0000-000", country_id: 1, email: c.email || "", maturity_date_id: 0, payment_day: 0, discount: 0, credit_limit: 0, salesman_id: 0, field_notes: "" });
-      custId = posInt(created?.customer_id);
+      try {
+        const created = await mPost("/customers/insert/", token, {
+          company_id: companyId, vat, number: vat,
+          name: c.name || "Consumidor Final", language_id: 1,
+          address: c.address || "Desconhecido", city: c.city || "Desconhecido",
+          zip_code: c.postal_code || "1000-001", country_id: 1,
+          email: c.email || "", maturity_date_id: 0, payment_method_id: 0,
+          salesman_id: 0, field_notes: "",
+        });
+        custId = posInt(created?.customer_id);
+        if (!custId) return json({ ok: false, error: "customer_failed", message: `Moloni nao devolveu customer_id: ${JSON.stringify(created).slice(0, 400)}` });
+      } catch (ce) {
+        return json({ ok: false, error: "customer_insert_failed", message: (ce as Error).message });
+      }
     }
-    if (!custId) return json({ ok: false, error: "customer_failed", message: "Não foi possível obter/criar o cliente no Moloni." });
 
     const treat = order.vat_treatment as string | null;
     const lines = ((order as any).order_lines ?? []).map((l: any) => {
