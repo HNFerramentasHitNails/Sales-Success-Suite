@@ -61,27 +61,65 @@ export default function Marketplace() {
 
   const niche = category === "Outra" ? (custom.trim() || "Outra") : category;
 
+  type MktResp = { results?: Result[]; count?: number; error?: string; message?: string; done?: boolean; pending?: boolean; results_location?: string };
+  const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+  // invoca a função; em caso de erro mostra toast e devolve null
+  const invokeMkt = async (extra: Record<string, unknown>): Promise<MktResp | null> => {
+    const { data, error } = await supabase.functions.invoke("outreach-marketplace", {
+      body: {
+        organization_id: activeOrg!.id,
+        country, city: city.trim(), min_rating: Number(minRating), has_website: hasWebsite,
+        ...extra,
+      },
+    });
+    if (error) { toast({ title: "Falha na pesquisa", description: error.message, variant: "destructive" }); return null; }
+    const res = data as MktResp;
+    if (res?.error) {
+      toast({ title: res.error === "not_configured" ? "Outscraper não configurado" : "Erro", description: res.message ?? res.error, variant: "destructive" });
+      return null;
+    }
+    return res;
+  };
+
+  const finish = (res: MktResp) => {
+    setResults(res.results ?? []);
+    setSel(new Set((res.results ?? []).map((_, i) => i)));
+    toast({ title: `${res.results?.length ?? 0} resultados` });
+    setSearching(false);
+  };
+
   const search = async () => {
     if (!activeOrg) return;
     if (category === "Outra" && !custom.trim()) { toast({ title: "Indica a categoria", variant: "destructive" }); return; }
     setSearching(true); setResults([]); setSel(new Set());
-    const { data, error } = await supabase.functions.invoke("outreach-marketplace", {
-      body: {
-        organization_id: activeOrg.id, category: category === "Outra" ? null : category, custom_category: category === "Outra" ? custom : null,
-        country, city: city.trim(), quantity: Number(quantity), min_rating: Number(minRating), has_website: hasWebsite,
-      },
+
+    // Fase 1 — arrancar a pesquisa
+    const startRes = await invokeMkt({
+      action: "start",
+      category: category === "Outra" ? null : category,
+      custom_category: category === "Outra" ? custom : null,
+      quantity: Number(quantity),
     });
-    setSearching(false);
-    if (error) { toast({ title: "Falha na pesquisa", description: error.message, variant: "destructive" }); return; }
-    const res = data as { results?: Result[]; error?: string; message?: string; debug?: unknown };
-    const dbg = res?.debug ? ` · diag: ${JSON.stringify(res.debug)}` : "";
-    if (res?.error) {
-      toast({ title: res.error === "not_configured" ? "Outscraper não configurado" : "Erro", description: (res.message ?? res.error) + dbg, variant: "destructive" });
-      return;
+    if (!startRes) { setSearching(false); return; }
+    if (startRes.done) { finish(startRes); return; }
+    if (!startRes.results_location) { setSearching(false); toast({ title: "Sem resposta do fornecedor", variant: "destructive" }); return; }
+
+    // Fase 2 — consultar o resultado a cada 5s (até ~3 min)
+    const loc = startRes.results_location;
+    for (let i = 0; i < 36; i++) {
+      await sleep(5000);
+      const p = await invokeMkt({ action: "poll", results_location: loc });
+      if (!p) { setSearching(false); return; }
+      if (p.done) { finish(p); return; }
+      // pending -> continua
     }
-    setResults(res.results ?? []);
-    setSel(new Set((res.results ?? []).map((_, i) => i)));
-    toast({ title: `${res.results?.length ?? 0} resultados`, description: dbg || undefined });
+    setSearching(false);
+    toast({
+      title: "Ainda a processar",
+      description: "O fornecedor está a demorar. Repita dentro de momentos — a 2.ª vez costuma ser bem mais rápida (cache).",
+      variant: "destructive",
+    });
   };
 
   const toggle = (i: number) => {

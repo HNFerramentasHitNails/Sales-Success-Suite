@@ -7,8 +7,6 @@ const corsHeaders = {
 };
 const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
 function firstEmail(r: any): string | null {
   if (Array.isArray(r?.emails) && r.emails.length) {
     const e = r.emails[0];
@@ -37,7 +35,14 @@ function extractList(data: any): any[] {
   return Array.isArray(raw) ? (Array.isArray(raw[0]) ? raw[0] : raw) : [];
 }
 
-// fetch com timeout para não bloquear indefinidamente
+function applyFilters(list: any[], country: string, minR: number, hasWebsite: boolean) {
+  let results = list.map((x) => normalize(x, country || ""));
+  if (minR > 0) results = results.filter((x) => (Number(x.rating) || 0) >= minR);
+  if (hasWebsite) results = results.filter((x) => x.has_website);
+  results = results.filter((x) => x.phone || x.email);
+  return results;
+}
+
 async function fetchJson(url: string, headers: Record<string, string>, timeoutMs = 25000) {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), timeoutMs);
@@ -50,51 +55,6 @@ async function fetchJson(url: string, headers: Record<string, string>, timeoutMs
   }
 }
 
-// Usa o modo assíncrono do Outscraper + polling limitado (evita o timeout da edge function).
-async function outscraperSearch(apiKey: string, query: string, limit: number) {
-  const headers = { "X-API-KEY": apiKey, "Content-Type": "application/json" };
-  const start = Date.now();
-  const DEADLINE = 110_000; // margem abaixo do limite (~150s) da edge function
-
-  const url = `https://api.outscraper.com/maps/search-v3?query=${encodeURIComponent(query)}&limit=${limit}&async=true`;
-  let init;
-  try {
-    init = await fetchJson(url, headers);
-  } catch (_e) {
-    return { error: "timeout" };
-  }
-  const dbg: Record<string, unknown> = { initStatus: init.res.status, initKeys: Object.keys(init.data ?? {}).slice(0, 10) };
-  // Por vezes devolve logo os dados (cache).
-  if (init.data?.data) {
-    const list = extractList(init.data);
-    return { list, debug: { ...dbg, via: "init", listLen: list.length, sampleKeys: list[0] ? Object.keys(list[0]).slice(0, 20) : [] } };
-  }
-
-  const loc = init.data?.results_location;
-  if (!loc) {
-    if (!init.res.ok) return { error: (init.data as any)?.message || `HTTP ${init.res.status}`, debug: dbg };
-    return { list: [], debug: { ...dbg, via: "no_loc" } };
-  }
-
-  // Poll do resultado.
-  while (Date.now() - start < DEADLINE) {
-    await sleep(5000);
-    let pr;
-    try {
-      pr = await fetchJson(loc, headers, 20000);
-    } catch (_e) {
-      continue; // tenta de novo até ao deadline
-    }
-    const st = (pr.data as any)?.status;
-    if (st === "Success" || st === "Finished" || (pr.data as any)?.data) {
-      const list = extractList(pr.data);
-      return { list, debug: { ...dbg, via: "poll", pollStatus: st, listLen: list.length, sampleKeys: list[0] ? Object.keys(list[0]).slice(0, 20) : [] } };
-    }
-    if (st === "Error" || st === "Failed") return { error: "provider_failed", debug: { ...dbg, pollStatus: st } };
-  }
-  return { error: "timeout", debug: { ...dbg, hadLoc: true } };
-}
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
@@ -102,6 +62,7 @@ Deno.serve(async (req) => {
     const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const admin = createClient(SUPABASE_URL, SERVICE_KEY);
     const apiKey = Deno.env.get("OUTSCRAPER_API_KEY") ?? "";
+    const headers = { "X-API-KEY": apiKey, "Content-Type": "application/json" };
 
     const auth = req.headers.get("Authorization") ?? "";
     const token = auth.toLowerCase().startsWith("bearer ") ? auth.slice(7) : "";
@@ -111,7 +72,7 @@ Deno.serve(async (req) => {
     if (cErr || !userId) return json({ error: "unauthorized" }, 401);
 
     const body = await req.json().catch(() => ({} as any));
-    const { organization_id, category, custom_category, country, city, quantity, min_rating, has_website } = body ?? {};
+    const { organization_id, action, results_location, category, custom_category, country, city, quantity, min_rating, has_website } = body ?? {};
     if (!organization_id) return json({ error: "invalid_payload" }, 400);
 
     const { data: member } = await admin.from("organization_members")
@@ -120,32 +81,54 @@ Deno.serve(async (req) => {
 
     if (!apiKey) return json({ error: "not_configured", message: "OUTSCRAPER_API_KEY não está configurado no servidor." });
 
+    const minR = Number(min_rating) || 0;
+
+    // ===== Fase 2: POLL (consultar resultado de um pedido já iniciado) =====
+    if (action === "poll") {
+      if (!results_location) return json({ error: "missing_location" }, 400);
+      let pr;
+      try {
+        pr = await fetchJson(results_location, headers, 25000);
+      } catch (_e) {
+        return json({ pending: true }); // tenta de novo no próximo poll
+      }
+      const st = (pr.data as any)?.status;
+      if (st === "Success" || st === "Finished" || (pr.data as any)?.data) {
+        const results = applyFilters(extractList(pr.data), country || "", minR, !!has_website);
+        return json({ done: true, count: results.length, results });
+      }
+      if (st === "Error" || st === "Failed") return json({ error: "provider_error", message: "O fornecedor falhou esta pesquisa." });
+      return json({ pending: true });
+    }
+
+    // ===== Fase 1: START (arranca a pesquisa assíncrona) =====
     const cat = (custom_category?.trim() || category || "").toString().trim();
     if (!cat) return json({ error: "missing_category" }, 400);
     const loc = [city, country].filter(Boolean).join(", ");
     const query = loc ? `${cat}, ${loc}` : cat;
     const limit = Math.min(Math.max(Number(quantity) || 20, 1), 100);
 
-    const r = await outscraperSearch(apiKey, query, limit);
-    const dbg = (r as any).debug ?? {};
-    if ((r as any).error) {
-      if ((r as any).error === "timeout") {
-        return json({ error: "timeout", message: "A pesquisa demorou demasiado. Tente reduzir a quantidade (ex.: 10) ou repita dentro de momentos.", debug: dbg });
-      }
-      return json({ error: "provider_error", message: (r as any).error, debug: dbg });
+    const url = `https://api.outscraper.com/maps/search-v3?query=${encodeURIComponent(query)}&limit=${limit}&async=true`;
+    let init;
+    try {
+      init = await fetchJson(url, headers, 25000);
+    } catch (_e) {
+      return json({ error: "provider_error", message: "Não foi possível iniciar a pesquisa. Tente novamente." });
     }
 
-    let results = ((r as any).list as any[]).map((x) => normalize(x, country || ""));
-    const rawLen = results.length;
-    const minR = Number(min_rating) || 0;
-    if (minR > 0) results = results.filter((x) => (Number(x.rating) || 0) >= minR);
-    const afterRating = results.length;
-    if (has_website) results = results.filter((x) => x.has_website);
-    const afterWebsite = results.length;
-    // só úteis para outreach: têm telefone ou email
-    results = results.filter((x) => x.phone || x.email);
+    // Cache hit: resultados imediatos.
+    if (init.data?.data) {
+      const results = applyFilters(extractList(init.data), country || "", minR, !!has_website);
+      return json({ done: true, count: results.length, results, query });
+    }
 
-    return json({ count: results.length, results, query, debug: { ...dbg, rawLen, afterRating, afterWebsite, afterContact: results.length, minR, has_website: !!has_website } });
+    const rl = (init.data as any)?.results_location;
+    if (!rl) {
+      if (!init.res.ok) return json({ error: "provider_error", message: (init.data as any)?.message || `HTTP ${init.res.status}` });
+      return json({ done: true, count: 0, results: [], query });
+    }
+    // Devolve a localização do resultado para a app ir consultando (poll).
+    return json({ pending: true, results_location: rl, query });
   } catch (e) {
     console.error("outreach-marketplace fatal:", (e as Error).message);
     return json({ error: "internal_error", message: (e as Error).message }, 500);
