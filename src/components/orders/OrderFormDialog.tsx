@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Trash2, RefreshCw } from "lucide-react";
+import { Plus, Trash2, RefreshCw, Wallet, Loader2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { useOrganization } from "@/contexts/OrganizationContext";
@@ -67,6 +67,41 @@ export default function OrderFormDialog({
   const [serverOrder, setServerOrder] = useState<Order | null>(null);
   // Pré-visualização AO VIVO do regime de IVA (sem gravar).
   const [previewVat, setPreviewVat] = useState<{ treatment: string; destination_rate: number | null; reason: string | null } | null>(null);
+  // Carteira do cliente (para pagar a encomenda com saldo)
+  const [walletBalance, setWalletBalance] = useState<number | null>(null);
+  const [payingWallet, setPayingWallet] = useState(false);
+
+  useEffect(() => {
+    if (!open || !order || !activeOrg || !customerId) { setWalletBalance(null); return; }
+    supabase.from("customer_wallets").select("balance")
+      .eq("organization_id", activeOrg.id).eq("customer_id", customerId).maybeSingle()
+      .then(({ data }) => setWalletBalance(data ? Number((data as { balance: number }).balance) : 0));
+  }, [open, order, activeOrg, customerId]);
+
+  const handlePayWallet = async () => {
+    if (!order) return;
+    setPayingWallet(true);
+    const { data, error } = await supabase.rpc("pay_order_with_wallet", { _order_id: order.id });
+    setPayingWallet(false);
+    if (error) {
+      const map: Record<string, string> = {
+        no_balance: "O cliente não tem saldo na carteira.",
+        already_applied: "A carteira já foi aplicada a esta encomenda.",
+        order_not_payable: "Esta encomenda já está paga, faturada ou cancelada.",
+        forbidden: "Sem permissão.",
+        insufficient_balance: "Saldo insuficiente.",
+      };
+      toast({ title: "Não foi possível pagar com a carteira", description: map[error.message] ?? error.message, variant: "destructive" });
+      return;
+    }
+    const res = data as { applied?: number; fully_paid?: boolean; remaining?: number };
+    toast({
+      title: res?.fully_paid ? "Encomenda paga com a carteira" : "Carteira aplicada",
+      description: `Aplicado ${fmtMoney(res?.applied ?? 0, currency)}${res?.fully_paid ? "" : ` · em falta ${fmtMoney(res?.remaining ?? 0, currency)}`}`,
+    });
+    onSaved();
+    onOpenChange(false);
+  };
 
   const loadOptions = useCallback(async () => {
     if (!activeOrg) return;
@@ -487,6 +522,29 @@ export default function OrderFormDialog({
                   <SelectItem value="cancelada">Cancelada</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+          )}
+
+          {order && !["paga", "faturada", "cancelada"].includes(status) && walletBalance !== null && (
+            <div className="rounded-md border p-3 space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="flex items-center gap-2 text-muted-foreground"><Wallet className="h-4 w-4" /> Carteira do cliente</span>
+                <span className="font-semibold">{fmtMoney(walletBalance, currency)}</span>
+              </div>
+              {Number(order.wallet_balance_applied ?? 0) > 0 && (
+                <div className="text-xs text-muted-foreground">Já aplicado a esta encomenda: {fmtMoney(Number(order.wallet_balance_applied), currency)}</div>
+              )}
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                disabled={payingWallet || walletBalance <= 0 || Number(order.wallet_balance_applied ?? 0) > 0}
+                onClick={handlePayWallet}
+              >
+                {payingWallet ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Wallet className="h-4 w-4 mr-2" />}
+                Pagar com carteira
+              </Button>
+              {walletBalance <= 0 && <p className="text-xs text-muted-foreground">Sem saldo disponível na carteira.</p>}
             </div>
           )}
 

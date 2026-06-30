@@ -1989,6 +1989,7 @@ export type Database = {
           vat_destination_rate: number | null
           vat_exemption_reason: string | null
           vat_treatment: string
+          wallet_balance_applied: number
         }
         Insert: {
           assigned_member_id?: string | null
@@ -2018,6 +2019,7 @@ export type Database = {
           vat_destination_rate?: number | null
           vat_exemption_reason?: string | null
           vat_treatment?: string
+          wallet_balance_applied?: number
         }
         Update: {
           assigned_member_id?: string | null
@@ -2047,6 +2049,7 @@ export type Database = {
           vat_destination_rate?: number | null
           vat_exemption_reason?: string | null
           vat_treatment?: string
+          wallet_balance_applied?: number
         }
         Relationships: [
           {
@@ -4635,6 +4638,7 @@ export type Database = {
       org_within_user_limit: { Args: { _org_id: string }; Returns: boolean }
       outreach_can_write: { Args: { _org_id: string }; Returns: boolean }
       outreach_cron_tick: { Args: never; Returns: undefined }
+      pay_order_with_wallet: { Args: { _order_id: string }; Returns: Json }
       preview_order_vat: {
         Args: {
           p_customer_id: string
