@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { driver, type DriveStep } from "driver.js";
 import "driver.js/dist/driver.css";
@@ -173,17 +173,16 @@ export default function ProductTour() {
     };
   }, [isAdmin, role, pathname, isEnabled, navigate]);
 
-  // auto-arranque uma vez para utilizadores novos
+  // auto-arranque UMA ÚNICA VEZ (utilizadores novos); depois só manualmente pelo botão "?"
+  const autoRef = useRef(false);
   useEffect(() => {
-    if (!pathname.startsWith("/app")) return;
-    if (localStorage.getItem(TOUR_KEY)) return;
-    const t = window.setTimeout(() => {
-      localStorage.setItem(TOUR_KEY, "1");
-      const ctx = { isAdmin, role: role ?? null };
-      const allowed = new Set(visibleGroups(ctx).map((g) => g.tourId).filter(Boolean) as string[]);
-      runSteps(globalSteps(isAdmin, role ?? null), allowed);
-    }, 1000);
-    return () => window.clearTimeout(t);
+    if (autoRef.current || !pathname.startsWith("/app")) return;
+    autoRef.current = true;
+    if (localStorage.getItem(TOUR_KEY)) return; // já visto -> nunca mais auto-arranca
+    localStorage.setItem(TOUR_KEY, "1"); // marca como visto JÁ (robusto a navegação/redirects)
+    const ctx = { isAdmin, role: role ?? null };
+    const allowed = new Set(visibleGroups(ctx).map((g) => g.tourId).filter(Boolean) as string[]);
+    window.setTimeout(() => runSteps(globalSteps(isAdmin, role ?? null), allowed), 1200);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
 
