@@ -67,6 +67,7 @@ import AvisoLegal from "@/pages/legal/AvisoLegal";
 import Subprocessadores from "@/pages/legal/Subprocessadores";
 import DPA from "@/pages/legal/DPA";
 import AvisoColaboradores from "@/pages/legal/AvisoColaboradores";
+import Acessibilidade from "@/pages/legal/Acessibilidade";
 
 const queryClient = new QueryClient();
 
@@ -92,6 +93,7 @@ const App = () => (
               <Route path="/subprocessadores" element={<Subprocessadores />} />
               <Route path="/dpa" element={<DPA />} />
               <Route path="/colaboradores" element={<AvisoColaboradores />} />
+              <Route path="/acessibilidade" element={<Acessibilidade />} />
               <Route
                 path="/onboarding"
                 element={

@@ -511,6 +511,8 @@ export default function Landing() {
               <Link to="/aviso-legal" className="hover:text-foreground">Aviso Legal</Link>
               <Link to="/subprocessadores" className="hover:text-foreground">Subprocessadores</Link>
               <Link to="/dpa" className="hover:text-foreground">DPA</Link>
+              <Link to="/colaboradores" className="hover:text-foreground">Colaboradores</Link>
+              <Link to="/acessibilidade" className="hover:text-foreground">Acessibilidade</Link>
               <button
                 type="button"
                 className="hover:text-foreground"

@@ -19,6 +19,7 @@ const LEGAL_LINKS = [
   { to: "/subprocessadores", label: "Subprocessadores" },
   { to: "/dpa", label: "DPA" },
   { to: "/colaboradores", label: "Colaboradores" },
+  { to: "/acessibilidade", label: "Acessibilidade" },
 ];
 
 function initials(name: string | null | undefined, email: string | null | undefined) {
