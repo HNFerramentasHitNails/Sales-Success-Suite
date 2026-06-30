@@ -81,8 +81,24 @@ Deno.serve(async (req) => {
     for (const t of (Array.isArray(taxes) ? taxes : [])) { const val = Number(t?.value); const id = posInt(t?.tax_id); if (id && Number.isFinite(val)) taxByRate.set(Math.round(val * 100) / 100, id); }
 
     const c = (order as any).customers ?? {};
-    // Moloni quer o NIF só com dígitos (sem prefixo de país tipo "PT").
-    const vat = ((c.vat_number && String(c.vat_number).trim()) || "999999990").replace(/^[A-Za-z]{2}(?=\d)/, "");
+    // Resolve país do cliente: prefixo do NIF (ex.: PT/ES/FR) ou país do cliente; defeito PT.
+    const rawVat = (c.vat_number && String(c.vat_number).trim()) || "";
+    const isoM = rawVat.match(/^([A-Za-z]{2})(?=.)/);
+    let iso = isoM ? isoM[1].toUpperCase() : null;
+    if (!iso && c.country && /^[A-Za-z]{2}$/.test(String(c.country).trim())) iso = String(c.country).trim().toUpperCase();
+    // Moloni guarda o NIF sem prefixo de país (o país vai em country_id). Consumidor final por defeito.
+    const vat = (isoM ? rawVat.slice(2) : rawVat) || "999999990";
+    // country_id do Moloni (Portugal = 1 por defeito; resolve o real para estrangeiros).
+    let countryId = 1;
+    if (iso && iso !== "PT") {
+      try {
+        const countries = await mPost("/countries/getAll/", token, {});
+        const m = (Array.isArray(countries) ? countries : []).find((x: any) =>
+          [x?.iso3166_1, x?.iso_3166_1, x?.iso].some((z) => String(z ?? "").toUpperCase() === iso));
+        const cid = posInt(m?.country_id);
+        if (cid) countryId = cid;
+      } catch { /* mantém PT */ }
+    }
     let custId: number | null = null;
     try { const f = await mPost("/customers/getByVat/", token, { company_id: companyId, vat }); custId = posInt(Array.isArray(f) ? f[0]?.customer_id : f?.customer_id); } catch { /* */ }
     if (!custId) {
@@ -91,7 +107,7 @@ Deno.serve(async (req) => {
           company_id: companyId, vat, number: vat,
           name: c.name || "Consumidor Final", language_id: 1,
           address: c.address || "Desconhecido", city: c.city || "Desconhecido",
-          zip_code: c.postal_code || "1000-001", country_id: 1,
+          zip_code: c.postal_code || "1000-001", country_id: countryId,
           email: c.email || "",
           maturity_date_id: 0, payment_method_id: 0, delivery_method_id: 0,
           salesman_id: 0, payment_day: 0, discount: 0, credit_limit: 0,
