@@ -32,29 +32,62 @@ function normalize(r: any, country: string) {
   };
 }
 
+function extractList(data: any): any[] {
+  const raw = data?.data;
+  return Array.isArray(raw) ? (Array.isArray(raw[0]) ? raw[0] : raw) : [];
+}
+
+// fetch com timeout para não bloquear indefinidamente
+async function fetchJson(url: string, headers: Record<string, string>, timeoutMs = 25000) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { headers, signal: ctrl.signal });
+    const data = await res.json().catch(() => ({}));
+    return { res, data };
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+// Usa o modo assíncrono do Outscraper + polling limitado (evita o timeout da edge function).
 async function outscraperSearch(apiKey: string, query: string, limit: number) {
   const headers = { "X-API-KEY": apiKey, "Content-Type": "application/json" };
-  const url = `https://api.outscraper.com/maps/search-v3?query=${encodeURIComponent(query)}&limit=${limit}&async=false`;
-  let res = await fetch(url, { headers });
-  let data = await res.json().catch(() => ({}));
+  const start = Date.now();
+  const DEADLINE = 110_000; // margem abaixo do limite (~150s) da edge function
 
-  // pode devolver 202 + results_location (assíncrono) -> fazer poll
-  const loc = (data as any)?.results_location;
-  if ((res.status === 202 || (data as any)?.status === "Pending") && loc) {
-    for (let i = 0; i < 8; i++) {
-      await sleep(3000);
-      const pr = await fetch(loc, { headers });
-      const pd = await pr.json().catch(() => ({}));
-      if ((pd as any)?.status === "Success") { data = pd; break; }
+  const url = `https://api.outscraper.com/maps/search-v3?query=${encodeURIComponent(query)}&limit=${limit}&async=true`;
+  let init;
+  try {
+    init = await fetchJson(url, headers);
+  } catch (_e) {
+    return { error: "timeout" };
+  }
+  // Por vezes devolve logo os dados (cache).
+  if (init.data?.data) return { list: extractList(init.data) };
+
+  const loc = init.data?.results_location;
+  if (!loc) {
+    if (!init.res.ok) return { error: (init.data as any)?.message || `HTTP ${init.res.status}` };
+    return { list: [] };
+  }
+
+  // Poll do resultado.
+  while (Date.now() - start < DEADLINE) {
+    await sleep(5000);
+    let pr;
+    try {
+      pr = await fetchJson(loc, headers, 20000);
+    } catch (_e) {
+      continue; // tenta de novo até ao deadline
     }
+    const st = (pr.data as any)?.status;
+    if (st === "Success" || st === "Finished" || (pr.data as any)?.data) {
+      return { list: extractList(pr.data) };
+    }
+    if (st === "Error" || st === "Failed") return { error: "provider_failed" };
   }
-  if (!res.ok && !(data as any)?.data) {
-    return { error: (data as any)?.message || `HTTP ${res.status}` };
-  }
-  // data.data é um array de arrays (uma lista por query)
-  const raw = (data as any)?.data;
-  const list = Array.isArray(raw) ? (Array.isArray(raw[0]) ? raw[0] : raw) : [];
-  return { list };
+  return { error: "timeout" };
 }
 
 Deno.serve(async (req) => {
@@ -89,7 +122,12 @@ Deno.serve(async (req) => {
     const limit = Math.min(Math.max(Number(quantity) || 20, 1), 100);
 
     const r = await outscraperSearch(apiKey, query, limit);
-    if ((r as any).error) return json({ error: "provider_error", message: (r as any).error });
+    if ((r as any).error) {
+      if ((r as any).error === "timeout") {
+        return json({ error: "timeout", message: "A pesquisa demorou demasiado. Tente reduzir a quantidade (ex.: 10) ou repita dentro de momentos." });
+      }
+      return json({ error: "provider_error", message: (r as any).error });
+    }
 
     let results = ((r as any).list as any[]).map((x) => normalize(x, country || ""));
     const minR = Number(min_rating) || 0;
