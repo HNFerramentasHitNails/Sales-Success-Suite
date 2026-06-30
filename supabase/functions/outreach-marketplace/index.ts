@@ -63,13 +63,17 @@ async function outscraperSearch(apiKey: string, query: string, limit: number) {
   } catch (_e) {
     return { error: "timeout" };
   }
+  const dbg: Record<string, unknown> = { initStatus: init.res.status, initKeys: Object.keys(init.data ?? {}).slice(0, 10) };
   // Por vezes devolve logo os dados (cache).
-  if (init.data?.data) return { list: extractList(init.data) };
+  if (init.data?.data) {
+    const list = extractList(init.data);
+    return { list, debug: { ...dbg, via: "init", listLen: list.length, sampleKeys: list[0] ? Object.keys(list[0]).slice(0, 20) : [] } };
+  }
 
   const loc = init.data?.results_location;
   if (!loc) {
-    if (!init.res.ok) return { error: (init.data as any)?.message || `HTTP ${init.res.status}` };
-    return { list: [] };
+    if (!init.res.ok) return { error: (init.data as any)?.message || `HTTP ${init.res.status}`, debug: dbg };
+    return { list: [], debug: { ...dbg, via: "no_loc" } };
   }
 
   // Poll do resultado.
@@ -83,11 +87,12 @@ async function outscraperSearch(apiKey: string, query: string, limit: number) {
     }
     const st = (pr.data as any)?.status;
     if (st === "Success" || st === "Finished" || (pr.data as any)?.data) {
-      return { list: extractList(pr.data) };
+      const list = extractList(pr.data);
+      return { list, debug: { ...dbg, via: "poll", pollStatus: st, listLen: list.length, sampleKeys: list[0] ? Object.keys(list[0]).slice(0, 20) : [] } };
     }
-    if (st === "Error" || st === "Failed") return { error: "provider_failed" };
+    if (st === "Error" || st === "Failed") return { error: "provider_failed", debug: { ...dbg, pollStatus: st } };
   }
-  return { error: "timeout" };
+  return { error: "timeout", debug: { ...dbg, hadLoc: true } };
 }
 
 Deno.serve(async (req) => {
@@ -122,21 +127,25 @@ Deno.serve(async (req) => {
     const limit = Math.min(Math.max(Number(quantity) || 20, 1), 100);
 
     const r = await outscraperSearch(apiKey, query, limit);
+    const dbg = (r as any).debug ?? {};
     if ((r as any).error) {
       if ((r as any).error === "timeout") {
-        return json({ error: "timeout", message: "A pesquisa demorou demasiado. Tente reduzir a quantidade (ex.: 10) ou repita dentro de momentos." });
+        return json({ error: "timeout", message: "A pesquisa demorou demasiado. Tente reduzir a quantidade (ex.: 10) ou repita dentro de momentos.", debug: dbg });
       }
-      return json({ error: "provider_error", message: (r as any).error });
+      return json({ error: "provider_error", message: (r as any).error, debug: dbg });
     }
 
     let results = ((r as any).list as any[]).map((x) => normalize(x, country || ""));
+    const rawLen = results.length;
     const minR = Number(min_rating) || 0;
     if (minR > 0) results = results.filter((x) => (Number(x.rating) || 0) >= minR);
+    const afterRating = results.length;
     if (has_website) results = results.filter((x) => x.has_website);
+    const afterWebsite = results.length;
     // só úteis para outreach: têm telefone ou email
     results = results.filter((x) => x.phone || x.email);
 
-    return json({ count: results.length, results, query });
+    return json({ count: results.length, results, query, debug: { ...dbg, rawLen, afterRating, afterWebsite, afterContact: results.length, minR, has_website: !!has_website } });
   } catch (e) {
     console.error("outreach-marketplace fatal:", (e as Error).message);
     return json({ error: "internal_error", message: (e as Error).message }, 500);

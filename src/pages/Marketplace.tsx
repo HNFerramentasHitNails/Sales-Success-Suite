@@ -73,14 +73,15 @@ export default function Marketplace() {
     });
     setSearching(false);
     if (error) { toast({ title: "Falha na pesquisa", description: error.message, variant: "destructive" }); return; }
-    const res = data as { results?: Result[]; error?: string; message?: string };
+    const res = data as { results?: Result[]; error?: string; message?: string; debug?: unknown };
+    const dbg = res?.debug ? ` · diag: ${JSON.stringify(res.debug)}` : "";
     if (res?.error) {
-      toast({ title: res.error === "not_configured" ? "Outscraper não configurado" : "Erro", description: res.message ?? res.error, variant: "destructive" });
+      toast({ title: res.error === "not_configured" ? "Outscraper não configurado" : "Erro", description: (res.message ?? res.error) + dbg, variant: "destructive" });
       return;
     }
     setResults(res.results ?? []);
     setSel(new Set((res.results ?? []).map((_, i) => i)));
-    toast({ title: `${res.results?.length ?? 0} resultados` });
+    toast({ title: `${res.results?.length ?? 0} resultados`, description: dbg || undefined });
   };
 
   const toggle = (i: number) => {
