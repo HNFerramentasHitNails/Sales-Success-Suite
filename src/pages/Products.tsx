@@ -55,7 +55,7 @@ function ProductDialog({
   const [channelSel, setChannelSel] = useState<Record<string, { on: boolean; sku: string; price: string }>>({});
   const [form, setForm] = useState({
     name: "", sku: "", description: "", product_type: "produto" as ProductType,
-    category: "", unit_price: "0", tax_rate: "23", is_tax_exempt: false,
+    category: "", unit_price: "0", unit_cost: "0", tax_rate: "23", is_tax_exempt: false,
     tracks_stock: false, stock_quantity: "0", low_stock_threshold: "", is_active: true,
     price_group_id: "", parent_product_id: "", variant_label: "",
   });
@@ -80,6 +80,7 @@ function ProductDialog({
         product_type: product.product_type,
         category: product.category ?? "",
         unit_price: String(product.unit_price ?? 0),
+        unit_cost: String((product as any).unit_cost ?? 0),
         tax_rate: String(product.tax_rate ?? 23),
         is_tax_exempt: product.is_tax_exempt,
         tracks_stock: product.tracks_stock,
@@ -101,7 +102,7 @@ function ProductDialog({
     } else {
       setForm({
         name: "", sku: "", description: "", product_type: "produto", category: "",
-        unit_price: "0", tax_rate: "23", is_tax_exempt: false,
+        unit_price: "0", unit_cost: "0", tax_rate: "23", is_tax_exempt: false,
         tracks_stock: false, stock_quantity: "0", low_stock_threshold: "", is_active: true,
         price_group_id: "", parent_product_id: "", variant_label: "",
       });
@@ -111,6 +112,7 @@ function ProductDialog({
   }, [open, product, activeOrg]);
 
   const price = Number(form.unit_price) || 0;
+  const cost = Number(form.unit_cost) || 0;
   const rate = form.is_tax_exempt ? 0 : (Number(form.tax_rate) || 0);
   const priceWithTax = price * (1 + rate / 100);
 
@@ -131,6 +133,7 @@ function ProductDialog({
       product_type: form.product_type,
       category: form.category.trim() || null,
       unit_price: Number(form.unit_price) || 0,
+      unit_cost: Number(form.unit_cost) || 0,
       tax_rate: form.is_tax_exempt ? 0 : (Number(form.tax_rate) || 0),
       is_tax_exempt: form.is_tax_exempt,
       currency: activeOrg.currency || "EUR",
@@ -301,17 +304,26 @@ function ProductDialog({
               <Input type="number" step="0.01" min="0" value={form.unit_price} onChange={(e) => setForm({ ...form, unit_price: e.target.value })} />
             </div>
             <div>
+              <Label>Custo unitário</Label>
+              <Input type="number" step="0.01" min="0" value={form.unit_cost} onChange={(e) => setForm({ ...form, unit_cost: e.target.value })} />
+            </div>
+            <div>
               <Label>Taxa IVA (%)</Label>
               <Input type="number" step="0.01" min="0" max="100" disabled={form.is_tax_exempt}
                 value={form.is_tax_exempt ? "0" : form.tax_rate}
                 onChange={(e) => setForm({ ...form, tax_rate: e.target.value })} />
             </div>
-            <div className="md:col-span-2 flex items-center gap-2">
+            <div className="flex items-center gap-2">
               <Checkbox id="exempt" checked={form.is_tax_exempt} onCheckedChange={(v) => setForm({ ...form, is_tax_exempt: !!v })} />
               <Label htmlFor="exempt" className="font-normal cursor-pointer">Isento de IVA</Label>
             </div>
-            <div className="md:col-span-2 text-sm text-muted-foreground">
-              Preço com IVA: <span className="font-semibold text-foreground">{fmtMoney(priceWithTax, activeOrg?.currency || "EUR")}</span>
+            <div className="md:col-span-2 flex flex-wrap gap-x-6 gap-y-1 text-sm text-muted-foreground">
+              <span>Preço com IVA: <span className="font-semibold text-foreground">{fmtMoney(priceWithTax, activeOrg?.currency || "EUR")}</span></span>
+              {cost > 0 && (
+                <span>Margem bruta: <span className="font-semibold text-foreground">{fmtMoney(price - cost, activeOrg?.currency || "EUR")}</span>
+                  {price > 0 && <> ({Math.round((price - cost) / price * 100)}%)</>}
+                </span>
+              )}
             </div>
 
             <div className="md:col-span-2 flex items-center gap-2">
