@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Search, Trash2, CreditCard, ExternalLink, Copy, FileText, Upload } from "lucide-react";
+import { Plus, Search, Trash2, CreditCard, ExternalLink, Copy, FileText, Upload, Wallet, Loader2 } from "lucide-react";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -54,6 +54,8 @@ export default function Orders() {
   const [stripeActive, setStripeActive] = useState(false);
   const [generatingFor, setGeneratingFor] = useState<string | null>(null);
   const [issuingFor, setIssuingFor] = useState<string | null>(null);
+  const [payingWalletFor, setPayingWalletFor] = useState<string | null>(null);
+  const [walletByCustomer, setWalletByCustomer] = useState<Record<string, number>>({});
   const currency = activeOrg?.currency || "EUR";
 
   const load = useCallback(async () => {
@@ -73,8 +75,24 @@ export default function Orders() {
     const { data, count: c, error } = await q;
     setLoading(false);
     if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
-    setRows((data ?? []) as Row[]);
+    const list = (data ?? []) as Row[];
+    setRows(list);
     setCount(c ?? 0);
+
+    // Saldos de carteira dos clientes visíveis (para a ação rápida "Pagar com carteira")
+    const custIds = Array.from(new Set(list.map((o) => o.customer_id).filter(Boolean))) as string[];
+    if (custIds.length) {
+      const { data: wallets } = await supabase
+        .from("customer_wallets")
+        .select("customer_id, balance")
+        .eq("organization_id", activeOrg.id)
+        .in("customer_id", custIds);
+      const map: Record<string, number> = {};
+      (wallets ?? []).forEach((w) => { map[(w as { customer_id: string }).customer_id] = Number((w as { balance: number }).balance); });
+      setWalletByCustomer(map);
+    } else {
+      setWalletByCustomer({});
+    }
   }, [activeOrg, search, statusFilter, page]);
 
   useEffect(() => { load(); }, [load]);
@@ -180,6 +198,29 @@ export default function Orders() {
     }
   }
 
+  async function payWithWallet(o: Row) {
+    setPayingWalletFor(o.id);
+    const { data, error } = await supabase.rpc("pay_order_with_wallet", { _order_id: o.id });
+    setPayingWalletFor(null);
+    if (error) {
+      const map: Record<string, string> = {
+        no_balance: "O cliente não tem saldo na carteira.",
+        already_applied: "A carteira já foi aplicada a esta encomenda.",
+        order_not_payable: "Esta encomenda já está paga, faturada ou cancelada.",
+        forbidden: "Sem permissão.",
+        insufficient_balance: "Saldo insuficiente.",
+      };
+      toast({ title: "Não foi possível pagar com a carteira", description: map[error.message] ?? error.message, variant: "destructive" });
+      return;
+    }
+    const res = data as { applied?: number; fully_paid?: boolean; remaining?: number };
+    toast({
+      title: res?.fully_paid ? "Encomenda paga com a carteira" : "Carteira aplicada",
+      description: `Aplicado ${fmtMoney(res?.applied ?? 0, o.currency || currency)}${res?.fully_paid ? "" : ` · em falta ${fmtMoney(res?.remaining ?? 0, o.currency || currency)}`}`,
+    });
+    load();
+  }
+
   function copyText(text: string) {
     navigator.clipboard.writeText(text);
     toast({ title: "Copiado" });
@@ -250,6 +291,12 @@ export default function Orders() {
                 const canInvoice = canWrite
                   && (o.status === "confirmada" || o.status === "paga")
                   && !activeInvoice;
+                const walletBal = o.customer_id ? (walletByCustomer[o.customer_id] ?? 0) : 0;
+                const walletApplied = Number((o as any).wallet_balance_applied ?? 0);
+                const canPayWallet = canWrite
+                  && !["paga", "faturada", "cancelada"].includes(o.status)
+                  && walletApplied <= 0
+                  && walletBal > 0;
                 return (
                   <TableRow key={o.id} className="cursor-pointer hover:bg-muted/40" onClick={() => canWrite && openEdit(o)}>
                     <TableCell className="font-medium">{o.order_number}</TableCell>
@@ -257,7 +304,15 @@ export default function Orders() {
                     <TableCell>{fmtDate(o.order_date)}</TableCell>
                     <TableCell>
                       <div className="flex flex-col gap-1">
-                        <Badge className={st?.cls} variant="secondary">{st?.l ?? o.status}</Badge>
+                        <div className="flex items-center gap-1">
+                          <Badge className={st?.cls} variant="secondary">{st?.l ?? o.status}</Badge>
+                          {Number((o as any).wallet_balance_applied ?? 0) > 0 && (
+                            <Badge variant="secondary" className="bg-amber-500/15 text-amber-700 dark:text-amber-300 gap-1"
+                              title={`Carteira aplicada: ${fmtMoney(Number((o as any).wallet_balance_applied), o.currency || currency)}`}>
+                              <Wallet className="h-3 w-3" /> Carteira
+                            </Badge>
+                          )}
+                        </div>
                         {o.status === "paga" && (o as any).paid_at && (
                           <span className="text-[10px] text-muted-foreground">Pago em {fmtDate((o as any).paid_at)}</span>
                         )}
@@ -266,6 +321,16 @@ export default function Orders() {
                     <TableCell className="text-right">{fmtMoney(Number(o.total), o.currency || currency)}</TableCell>
                     <TableCell onClick={(e) => e.stopPropagation()} className="text-right">
                       <div className="flex items-center justify-end gap-1">
+                        {canPayWallet && (
+                          <Button size="sm" variant="outline" disabled={payingWalletFor === o.id}
+                            onClick={() => payWithWallet(o)}
+                            title={`Pagar com a carteira do cliente (saldo ${fmtMoney(walletBal, o.currency || currency)})`}>
+                            {payingWalletFor === o.id
+                              ? <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                              : <Wallet className="h-4 w-4 mr-1" />}
+                            Carteira
+                          </Button>
+                        )}
                         {canPay && (
                           <Button size="sm" variant="outline" disabled={generatingFor === o.id}
                             onClick={() => generatePaymentLink(o)} title="Gerar link de pagamento Stripe">
