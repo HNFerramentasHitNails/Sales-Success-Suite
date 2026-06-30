@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { RotateCcw, Plus, Pencil, Trash2 } from "lucide-react";
+import { RotateCcw, Plus, Pencil, Trash2, Receipt, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -52,6 +52,8 @@ export default function RmaPage() {
   const [members, setMembers] = useState<Array<{ user_id: string; name: string }>>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<RmaRow | null>(null);
+  const [regularizing, setRegularizing] = useState<string | null>(null);
+  const isAdmin = role === "owner" || role === "admin";
 
   const load = useCallback(async () => {
     if (!activeOrg) return;
@@ -114,6 +116,17 @@ export default function RmaPage() {
     const value = newResolution === "__none__" ? null : newResolution;
     const { error } = await supabase.from("rma").update({ resolution: value }).eq("id", i.id);
     if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
+    load();
+  }
+
+  async function regularize(i: Rma) {
+    const label = i.resolution === "credit" ? "creditar a carteira do cliente" : "registar o reembolso ao método original";
+    if (!confirm(`Regularizar a devolução de ${i.customers?.name ?? "cliente"}?\n\nVai emitir nota de crédito, repor stock, ${label} e reverter a comissão. Esta ação é registada e não duplica.`)) return;
+    setRegularizing(i.id);
+    const { error } = await supabase.rpc("process_rma_resolution" as any, { _rma_id: i.id });
+    setRegularizing(null);
+    if (error) { toast({ title: "Erro a regularizar", description: error.message, variant: "destructive" }); return; }
+    toast({ title: "Devolução regularizada", description: "Nota de crédito emitida e movimentos lançados." });
     load();
   }
 
@@ -184,6 +197,12 @@ export default function RmaPage() {
                             </SelectContent>
                           </Select>
                         </div>
+                        {isAdmin && i.status === "approved" && (i.resolution === "credit" || i.resolution === "refund") && (
+                          <Button size="sm" variant="secondary" className="w-full h-7 text-xs" disabled={regularizing === i.id} onClick={() => regularize(i)}>
+                            {regularizing === i.id ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Receipt className="h-3.5 w-3.5 mr-1" />}
+                            Regularizar (nota de crédito)
+                          </Button>
+                        )}
                         <div className="flex justify-end">
                           <Button size="sm" variant="ghost" onClick={() => { setEditing(i); setDialogOpen(true); }}>
                             <Pencil className="h-3.5 w-3.5" />
