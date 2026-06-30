@@ -232,10 +232,12 @@ export default function Orders() {
   const openEdit = (o: Order) => { setEditing(o); setDialogOpen(true); };
 
   const remove = async (o: Order) => {
-    if (!confirm(`Eliminar a encomenda ${o.order_number}?`)) return;
-    const { error } = await supabase.from("orders").delete().eq("id", o.id);
+    // Cancelamentos são ESTADO (rastreáveis), não eliminação — preserva a numeração e a auditoria.
+    if (o.status === "cancelada") { toast({ title: "Encomenda já está cancelada" }); return; }
+    if (!confirm(`Cancelar a encomenda ${o.order_number}? O stock reservado é libertado.`)) return;
+    const { error } = await supabase.from("orders").update({ status: "cancelada" }).eq("id", o.id);
     if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
-    toast({ title: "Encomenda eliminada" });
+    toast({ title: "Encomenda cancelada" });
     load();
   };
 
@@ -370,8 +372,8 @@ export default function Orders() {
                             </Button>
                           </>
                         )}
-                        {isAdmin && (
-                        <Button size="sm" variant="ghost" onClick={() => remove(o)}>
+                        {isAdmin && o.status !== "cancelada" && (
+                        <Button size="sm" variant="ghost" title="Cancelar encomenda" onClick={() => remove(o)}>
                           <Trash2 className="h-4 w-4" />
                         </Button>
                         )}
