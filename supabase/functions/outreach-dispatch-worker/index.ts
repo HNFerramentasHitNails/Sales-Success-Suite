@@ -43,12 +43,31 @@ function warmupLimit(inst: any, now: Date): number {
   return 100;
 }
 
-async function resendSend(apiKey: string, from: string, to: string, subject: string, body: string) {
+async function resendSend(apiKey: string, from: string, to: string, subject: string, body: string, unsubscribeUrl?: string) {
   try {
+    // Identificação do remetente + cancelamento de subscrição (Lei 41/2004 / boas práticas).
+    const footerText = unsubscribeUrl
+      ? `\n\n—\nRecebeu este email porque foi identificado como potencial contacto comercial. Para deixar de receber, cancele a subscrição: ${unsubscribeUrl}`
+      : "";
+    const footerHtml = unsubscribeUrl
+      ? `<br><br><hr><p style="font-size:12px;color:#64748b">Recebeu este email porque foi identificado como potencial contacto comercial. <a href="${unsubscribeUrl}">Cancelar subscrição</a>.</p>`
+      : "";
+    const payload: Record<string, unknown> = {
+      from, to,
+      subject: subject || "(sem assunto)",
+      text: body + footerText,
+      html: body.split("\n").join("<br>") + footerHtml,
+    };
+    if (unsubscribeUrl) {
+      payload.headers = {
+        "List-Unsubscribe": `<${unsubscribeUrl}>`,
+        "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+      };
+    }
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ from, to, subject: subject || "(sem assunto)", text: body, html: body.split("\n").join("<br>") }),
+      body: JSON.stringify(payload),
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) return { ok: false, error: (data as any)?.message || `HTTP ${res.status}` };
@@ -197,7 +216,10 @@ async function processOrg(admin: any, orgId: string, resendKey: string, fallback
       const { data: vars } = await admin.from("outreach_template_variations").select("*").eq("template_id", step.template_id).eq("channel", "email");
       const variation = pickVariation(vars ?? []);
       if (!variation) { await advance(); continue; }
-      const r = await resendSend(resendKey, from, lead.email, render(variation.subject || "", lead), render(variation.body || "", lead));
+      const unsubUrl = lead.unsubscribe_token
+        ? `${Deno.env.get("SUPABASE_URL")}/functions/v1/outreach-unsubscribe?t=${lead.unsubscribe_token}`
+        : undefined;
+      const r = await resendSend(resendKey, from, lead.email, render(variation.subject || "", lead), render(variation.body || "", lead), unsubUrl);
       await admin.from("outreach_messages").insert({ organization_id: orgId, campaign_id: camp.id, target_id: tgt.id, lead_id: lead.id, variation_id: variation.id, channel: "email", status: r.ok ? "sent" : "failed", provider_message_id: r.ok ? r.id ?? null : null, error: r.ok ? null : (r.error ?? "send_failed"), sent_at: r.ok ? nowIso : null });
       if (r.ok) {
         sent++; emailState.daily_sent++; emailState.weekly_sent++; emailState.consecutive_failures = 0;
