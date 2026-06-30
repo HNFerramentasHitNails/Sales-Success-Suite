@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -90,6 +91,7 @@ export default function Subscriptions() {
   const [endDate, setEndDate] = useState<string>("");
   const [assignedMember, setAssignedMember] = useState<string>("__none__");
   const [notes, setNotes] = useState("");
+  const [mandateOk, setMandateOk] = useState(false);
   const [saving, setSaving] = useState(false);
 
   // history drawer
@@ -146,7 +148,7 @@ export default function Subscriptions() {
     setIntervalCount("1"); setIntervalUnit("month");
     const today = new Date().toISOString().slice(0, 10);
     setStartDate(today); setNextRun(today); setEndDate("");
-    setAssignedMember("__none__"); setNotes("");
+    setAssignedMember("__none__"); setNotes(""); setMandateOk(false);
   };
 
   const openNew = () => { resetForm(); setDialogOpen(true); };
@@ -168,6 +170,7 @@ export default function Subscriptions() {
     setEndDate(s.end_date ?? "");
     setAssignedMember(s.assigned_member_id ?? "__none__");
     setNotes(s.notes ?? "");
+    setMandateOk(!!(s as { mandate_acknowledged_at?: string }).mandate_acknowledged_at);
     setDialogOpen(true);
   };
 
@@ -186,6 +189,7 @@ export default function Subscriptions() {
     if (!customerId) { toast({ title: "Selecione um cliente", variant: "destructive" }); return; }
     if (mode === "product" && !productId) { toast({ title: "Selecione um produto", variant: "destructive" }); return; }
     if (mode === "free" && (!description.trim())) { toast({ title: "Descrição obrigatória", variant: "destructive" }); return; }
+    if (!mandateOk) { toast({ title: "Confirme o mandato de cobrança recorrente", description: "É necessário declarar que o cliente autorizou a cobrança recorrente.", variant: "destructive" }); return; }
 
     setSaving(true);
     const payload: any = {
@@ -204,6 +208,7 @@ export default function Subscriptions() {
       end_date: endDate || null,
       assigned_member_id: assignedMember === "__none__" ? null : assignedMember,
       notes: notes.trim() || null,
+      mandate_acknowledged_at: new Date().toISOString(),
     };
 
     let err;
@@ -444,6 +449,18 @@ export default function Subscriptions() {
             <div>
               <Label>Notas</Label>
               <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
+            </div>
+
+            <div className="rounded-md border p-3 bg-muted/30 space-y-2">
+              <p className="text-xs text-muted-foreground">
+                Renovação automática: a cada <strong>{Math.max(1, Number(intervalCount) || 1)} {UNIT_LABEL[intervalUnit]}</strong>,
+                a partir de <strong>{nextRun}</strong>{endDate ? <> até <strong>{endDate}</strong></> : ""}. O cliente
+                pode cancelar a qualquer momento (pausando ou cancelando a subscrição).
+              </p>
+              <label className="flex items-start gap-2 text-sm">
+                <Checkbox checked={mandateOk} onCheckedChange={(v) => setMandateOk(v === true)} className="mt-0.5" />
+                <span>Confirmo que o cliente autorizou a <strong>cobrança recorrente</strong> nas condições acima (mandato).</span>
+              </label>
             </div>
           </div>
 

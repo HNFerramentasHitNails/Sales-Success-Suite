@@ -48,7 +48,10 @@ export default function PoliticaPrivacidade() {
       <h2>5. Prazos de conservação</h2>
       <p>
         Conservamos os dados durante a vigência da conta e pelos prazos legais aplicáveis (designadamente
-        fiscais). Após esse período, os dados são eliminados ou anonimizados.
+        fiscais, em regra 10 anos para documentos fiscais). Aplicamos a minimização e o expurgo automático
+        aos dados transitórios: os <i>leads</i> colocados na lixeira são eliminados definitivamente ao fim de
+        30 dias, e os registos de envio e de caixa de entrada de campanhas são eliminados ao fim de 24 meses.
+        Após os prazos aplicáveis, os dados são eliminados ou anonimizados.
       </p>
 
       <h2>6. Os seus direitos</h2>
