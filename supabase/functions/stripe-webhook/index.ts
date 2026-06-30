@@ -118,14 +118,33 @@ Deno.serve(async (req) => {
     "payment_intent.succeeded",
   ]);
 
-  if (type && PAID_EVENTS.has(type) && orderId && orgId === hook.organization_id) {
-    // Idempotent: only mark as paid if not already paid
-    const { data: order } = await admin
-      .from("orders")
-      .select("id, status, organization_id, order_number")
-      .eq("id", orderId)
-      .eq("organization_id", hook.organization_id)
-      .maybeSingle();
+  if (type && PAID_EVENTS.has(type)) {
+    // Localiza a encomenda: primeiro pelos metadados (order_id), depois por payment_ref
+    // (id da sessão checkout ou do payment_intent) — cobre pagamentos sem metadados.
+    let order: { id: string; status: string; organization_id: string; order_number: string } | null = null;
+
+    if (orderId && orgId === hook.organization_id) {
+      const { data } = await admin
+        .from("orders")
+        .select("id, status, organization_id, order_number")
+        .eq("id", orderId)
+        .eq("organization_id", hook.organization_id)
+        .maybeSingle();
+      order = data as typeof order;
+    }
+
+    if (!order) {
+      const refs = [sessionOrIntentId, obj.payment_intent as string | undefined].filter(Boolean) as string[];
+      if (refs.length) {
+        const { data } = await admin
+          .from("orders")
+          .select("id, status, organization_id, order_number")
+          .eq("organization_id", hook.organization_id)
+          .in("payment_ref", refs)
+          .maybeSingle();
+        order = data as typeof order;
+      }
+    }
 
     if (order) {
       // Stripe "checkout.session.completed" includes payment_status
