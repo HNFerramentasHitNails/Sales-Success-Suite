@@ -20,34 +20,14 @@ type Result = {
 };
 
 const CATEGORIES = ["Restaurante", "Salão de Beleza", "Cabeleireiro", "Clínica", "Ginásio", "Hotel", "Imobiliária", "Advogados", "Contabilidade", "Marketing", "Consultoria", "Pizza", "Outra"];
-// Categorias orientadas a potenciais revendedores (negócios que podem revender os seus produtos
-// de unhas/beleza). Ordenadas do mais ao menos relevante para o setor.
-const RESELLER_CATEGORIES = [
-  "Salão de unhas",
-  "Manicure e pedicure",
-  "Salão de beleza",
-  "Cabeleireiro",
-  "Centro de estética",
-  "Podologia",
-  "Spa",
-  "Academia de beleza",
-  "Loja de produtos de beleza",
-  "Loja de cosmética",
-  "Perfumaria",
-  "Parafarmácia",
-  "Grossista de cosmética",
-  "Outra",
-];
 const COUNTRIES = ["Portugal", "Brasil", "Estados Unidos", "Espanha", "Reino Unido", "México", "Colômbia", "Peru", "Chile", "Equador", "Venezuela", "Costa Rica", "República Dominicana", "El Salvador", "Guatemala", "Honduras", "Nicarágua"];
 
 export default function Marketplace() {
   const { activeOrg, role } = useOrganization();
   const canWrite = role !== "read_only" && role !== null;
 
-  const [mode, setMode] = useState<"leads" | "resellers">("leads");
   const [category, setCategory] = useState("Restaurante");
   const [custom, setCustom] = useState("");
-  const cats = mode === "resellers" ? RESELLER_CATEGORIES : CATEGORIES;
   const [country, setCountry] = useState("Portugal");
   const [city, setCity] = useState("");
   const [quantity, setQuantity] = useState("20");
@@ -139,13 +119,12 @@ export default function Marketplace() {
       city: r.city || null,
       country: r.country || country,
       niche,
-      is_reseller: mode === "resellers",
       source: "marketplace" as const,
     }));
     const { error } = await supabase.from("outreach_leads").insert(rows);
     setImporting(false);
     if (error) { toast({ title: "Erro a importar", description: error.message, variant: "destructive" }); return; }
-    toast({ title: `${rows.length} ${mode === "resellers" ? "revendedores" : "leads"} importados`, description: "Disponíveis em Leads." });
+    toast({ title: `${rows.length} leads importados`, description: "Disponíveis em Leads." });
     setResults([]); setSel(new Set());
   };
 
@@ -153,34 +132,17 @@ export default function Marketplace() {
     <div className="space-y-6">
       <PageHeader
         title="Marketplace de Leads"
-        description="Encontra leads e potenciais revendedores em diretórios de negócio (via Outscraper / Google Maps)."
+        description="Encontra leads em diretórios de negócio (via Outscraper / Google Maps)."
         icon={<Store className="h-6 w-6" />}
       />
 
       <Card>
         <CardContent className="p-4 grid md:grid-cols-3 gap-3">
           <div className="grid gap-1.5">
-            <Label>Tipo de pesquisa</Label>
-            <Select
-              value={mode}
-              onValueChange={(v) => {
-                const m = v as "leads" | "resellers";
-                setMode(m);
-                setCategory((m === "resellers" ? RESELLER_CATEGORIES : CATEGORIES)[0]);
-              }}
-            >
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="leads">Clientes / Leads</SelectItem>
-                <SelectItem value="resellers">Revendedores (potenciais)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="grid gap-1.5">
             <Label>Categoria</Label>
             <Select value={category} onValueChange={setCategory}>
               <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>{cats.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+              <SelectContent>{CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
             </Select>
           </div>
           {category === "Outra" && (
@@ -226,22 +188,11 @@ export default function Marketplace() {
           <div className="flex items-end">
             <Button onClick={search} disabled={searching || !canWrite}>
               {searching ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Search className="h-4 w-4 mr-2" />}
-              {mode === "resellers" ? "Procurar revendedores" : "Procurar leads"}
+              Procurar leads
             </Button>
           </div>
         </CardContent>
       </Card>
-
-      {mode === "resellers" && (
-        <Alert>
-          <Store className="h-4 w-4" />
-          <AlertDescription>
-            Procura negócios que possam <strong>revender os seus produtos</strong> (ex.: salões, lojas de
-            cosmética, perfumarias, grossistas). Os contactos importados ficam marcados como
-            <strong> revendedores</strong> em Leads, para os tratar à parte.
-          </AlertDescription>
-        </Alert>
-      )}
 
       {!canWrite && <Alert><AlertDescription>Sem permissão para importar leads.</AlertDescription></Alert>}
 
