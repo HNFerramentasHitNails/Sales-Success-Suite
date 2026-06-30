@@ -552,6 +552,9 @@ function AgentWorkspace({ agent, orgId, canManageAi, active, initialPrompt, onPr
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground">
+                <span className="text-amber-600 dark:text-amber-400">Assistente de IA</span> — as respostas são geradas por inteligência artificial e podem conter erros; verifica antes de agir.
+              </p>
+              <p className="text-xs text-muted-foreground">
                 Enter para enviar · Shift+Enter para nova linha
                 {!canManageAi && (
                   <> · Se a IA não estiver configurada, contacta um administrador.</>

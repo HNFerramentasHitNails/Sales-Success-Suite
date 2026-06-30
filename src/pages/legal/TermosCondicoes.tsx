@@ -87,6 +87,17 @@ export default function TermosCondicoes() {
         O cliente define e comunica aos seus clientes finais as condições de validade e utilização do saldo,
         sendo o único responsável por essa relação.
       </p>
+
+      <h2>Anexo — Promoções e Vouchers</h2>
+      <p>
+        As promoções e vouchers emitidos na plataforma estão sujeitos às condições indicadas em cada
+        campanha, designadamente: período de validade, valor ou desconto, produtos/serviços abrangidos,
+        eventuais exclusões e limites de utilização (por cliente e/ou por encomenda). Salvo indicação
+        expressa, os vouchers não são cumuláveis com outras promoções, não são convertíveis em dinheiro
+        nem reembolsáveis, e o crédito atribuído à carteira rege-se pela cláusula da carteira acima. A
+        organização que cria a campanha é responsável por definir e comunicar essas condições aos seus
+        clientes finais e pode cancelar ou alterar promoções em caso de erro manifesto ou uso abusivo.
+      </p>
     </LegalLayout>
   );
 }

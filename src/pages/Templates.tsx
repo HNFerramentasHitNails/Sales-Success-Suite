@@ -309,6 +309,9 @@ export default function Templates() {
           </div>
 
           <p className="text-xs text-muted-foreground">Merge tags disponíveis: {MERGE_TAGS.join("  ")}</p>
+          <p className="text-xs text-amber-600 dark:text-amber-400">
+            ⚠ Conteúdo gerado por IA — revê e adapta antes de enviar.
+          </p>
 
           {/* Editor por canal */}
           {(Object.keys(gen) as Channel[]).filter((c) => (gen[c] ?? []).length > 0).map((ch) => {

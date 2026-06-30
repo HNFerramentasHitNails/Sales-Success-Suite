@@ -23,7 +23,9 @@ export default function PoliticaPrivacidade() {
       <p>
         Dados de registo e conta (nome, email, palavra-passe cifrada); dados de utilização e faturação
         (via Stripe); e os dados que o utilizador introduz na plataforma (clientes, encomendas, leads,
-        comunicações, perfis comerciais).
+        comunicações, perfis comerciais). Quando valida números de contribuinte, pode ser obtido e
+        conservado o nome associado ao NIF a partir do sistema VIES da Comissão Europeia
+        (campo de validação fiscal), apenas para conferência e faturação.
       </p>
 
       <h2>3. Finalidades e bases legais</h2>
@@ -68,7 +70,36 @@ export default function PoliticaPrivacidade() {
         Ver a <Link to="/cookies">Política de Cookies</Link>.
       </p>
 
-      <h2>9. Contactos</h2>
+      <h2>9. Decisões automatizadas e definição de perfis (profiling)</h2>
+      <p>
+        A plataforma pode calcular automaticamente perfis comerciais sobre os clientes das organizações
+        — por exemplo, indicadores RFM (recência, frequência, valor monetário), risco de abandono
+        (<i>churn</i>), fase do ciclo de vida, previsão de próxima compra e uma classe de cliente. Estes
+        perfis servem para apoiar a gestão comercial e podem influenciar condições como descontos por
+        classe. A diferenciação de condições é aplicada de forma transparente e não discriminatória.
+        Quando uma decisão automatizada produza efeitos significativos, o titular tem direito a
+        intervenção humana, a expressar o seu ponto de vista e a contestar a decisão (art. 22.º RGPD),
+        contactando {LEGAL.emailPrivacidade}.
+      </p>
+
+      <h2>10. Inteligência artificial</h2>
+      <p>
+        Algumas funcionalidades usam modelos de IA (por exemplo, assistentes de vendas e geração de
+        conteúdos). O conteúdo gerado por IA é claramente identificado e deve ser revisto antes de
+        utilizado. Procuramos minimizar os dados pessoais enviados aos modelos. O fornecedor de IA
+        efetivamente utilizado consta da <Link to="/subprocessadores">lista de subprocessadores</Link>;
+        quando processa dados fora da UE sem decisão de adequação, tal só ocorre após ativação e
+        declaração explícita do cliente.
+      </p>
+
+      <h2>11. Chamadas</h2>
+      <p>
+        O registo de chamadas comerciais limita-se a metadados (data, duração e resultado), para gestão
+        da atividade comercial. Não são gravados o áudio nem o conteúdo das chamadas. Caso venha a existir
+        gravação, será sempre precedida de aviso e do consentimento dos intervenientes.
+      </p>
+
+      <h2>12. Contactos</h2>
       <p>{LEGAL.emailPrivacidade} · {LEGAL.morada}.</p>
     </LegalLayout>
   );
