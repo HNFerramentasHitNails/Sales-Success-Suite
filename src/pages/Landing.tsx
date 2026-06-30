@@ -15,6 +15,12 @@ import {
   Sparkles,
   LineChart,
   TrendingUp,
+  Bot,
+  MessageCircle,
+  Mail,
+  Store,
+  Gift,
+  Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -71,14 +77,24 @@ const PLAN_FEATURES: Record<string, string[]> = {
 };
 
 const FEATURES = [
+  { icon: Bot, title: "Agentes de IA", desc: "Assistente de vendas, treino e estratégia com IA — com base no seu negócio." },
+  { icon: MessageCircle, title: "Outreach WhatsApp + Email", desc: "Campanhas multicanal com sequências, A/B e quotas, em piloto automático." },
   { icon: Users, title: "CRM de Clientes", desc: "Ficha completa, segmentação por tags e histórico unificado." },
   { icon: ShoppingCart, title: "Encomendas", desc: "Wizard de criação, catálogo de produtos e faturação integrada." },
   { icon: KanbanSquare, title: "Pipeline de Vendas", desc: "Kanban de prospecção com etapas, notas e atividades." },
+  { icon: Store, title: "Marketplace de leads", desc: "Encontre novos contactos B2B e importe-os direto para o funil." },
+  { icon: Gift, title: "Carteira & fidelização", desc: "Saldo de cliente, vouchers e campanhas de fidelização." },
   { icon: Wallet, title: "Comissões automáticas", desc: "Regras flexíveis por comercial, produto ou cliente." },
   { icon: Plug, title: "Integrações", desc: "Conecte loja online, faturação e pagamentos com a sua conta." },
   { icon: BarChart3, title: "Relatórios e métricas", desc: "KPIs, análise ABC/Pareto e dashboards em tempo real." },
   { icon: ShieldCheck, title: "Papéis e permissões", desc: "Controlo fino por equipa, com RBAC e segregação de dados." },
   { icon: Building2, title: "Multi-empresa / white-label", desc: "Várias organizações com marca, moeda e fiscalidade próprias." },
+];
+
+const OUTCOMES = [
+  { icon: Zap, title: "Tudo num só sítio", desc: "Do primeiro contacto à fatura paga — sem juntar cinco ferramentas." },
+  { icon: Bot, title: "IA que trabalha consigo", desc: "Gera mensagens, prepara reuniões e sugere os próximos passos." },
+  { icon: TrendingUp, title: "Decisões com dados", desc: "KPIs, Pareto e desempenho da equipa em tempo real." },
 ];
 
 const STEPS = [
@@ -160,6 +176,7 @@ export default function Landing() {
           </a>
           <nav className="hidden md:flex items-center gap-7 text-sm text-muted-foreground">
             <a href="#funcionalidades" className="hover:text-foreground transition-colors">Funcionalidades</a>
+            <a href="#ia" className="hover:text-foreground transition-colors">IA & Outreach</a>
             <a href="#precos" className="hover:text-foreground transition-colors">Preços</a>
             <a href="#faq" className="hover:text-foreground transition-colors">FAQ</a>
           </nav>
@@ -195,15 +212,16 @@ export default function Landing() {
           <div className="space-y-7 animate-reveal-up">
             <Badge variant="secondary" className="rounded-full px-3 py-1">
               <Sparkles className="h-3.5 w-3.5 mr-1.5" />
-              Novo: comissões automáticas + integrações
+              Novo: Agentes de IA + Outreach multicanal
             </Badge>
             <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-extrabold leading-[1.05] tracking-tight">
-              O CRM completo para a sua PME{" "}
+              O CRM com IA para a sua PME{" "}
               <span className="text-gradient-accent">vender mais e melhor</span>
             </h1>
             <p className="text-lg text-muted-foreground max-w-xl">
-              Clientes, encomendas, pipeline, comissões e integrações — num só sítio. Pensado para
-              equipas comerciais portuguesas que querem crescer com método.
+              Clientes, pipeline, encomendas, comissões e campanhas de Email e WhatsApp — num só sítio,
+              com agentes de IA a ajudar a equipa em cada passo. Pensado para equipas comerciais
+              portuguesas que querem crescer com método.
             </p>
             <div className="flex flex-wrap gap-3">
               <Button asChild size="lg" className="text-base">
@@ -300,15 +318,25 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Trust bar */}
+      {/* Outcomes band */}
       <section className="border-y bg-surface-alt">
-        <div className="container-app py-6 text-center text-sm md:text-base text-muted-foreground">
-          Tudo o que precisa para gerir vendas, num só lugar — desde o primeiro contacto à fatura paga.
+        <div className="container-app py-10 grid sm:grid-cols-3 gap-6">
+          {OUTCOMES.map((o) => (
+            <div key={o.title} className="flex items-start gap-3">
+              <div className="h-10 w-10 shrink-0 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                <o.icon className="h-5 w-5" />
+              </div>
+              <div>
+                <div className="font-display font-semibold">{o.title}</div>
+                <p className="text-sm text-muted-foreground mt-0.5">{o.desc}</p>
+              </div>
+            </div>
+          ))}
         </div>
       </section>
 
       {/* Features */}
-      <section id="funcionalidades" className="container-app py-20 lg:py-28">
+      <section id="funcionalidades" className="container-app py-20 lg:py-28 scroll-mt-16">
         <div className="max-w-2xl mb-14">
           <Badge variant="outline" className="mb-4">Funcionalidades</Badge>
           <h2 className="font-display text-3xl md:text-4xl font-bold tracking-tight">
@@ -331,8 +359,81 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* IA & Outreach showcase */}
+      <section id="ia" className="bg-surface-alt border-y scroll-mt-16">
+        <div className="container-app py-20 lg:py-28 grid lg:grid-cols-2 gap-12 items-center">
+          <div>
+            <Badge variant="outline" className="mb-4">
+              <Bot className="h-3.5 w-3.5 mr-1.5" /> IA & Outreach
+            </Badge>
+            <h2 className="font-display text-3xl md:text-4xl font-bold tracking-tight">
+              Agentes de IA e campanhas multicanal, no mesmo CRM
+            </h2>
+            <p className="mt-3 text-muted-foreground">
+              Deixe a IA preparar abordagens e gerar copy, e alcance leads por Email e WhatsApp com
+              sequências automáticas — tudo ligado aos seus clientes e ao seu pipeline.
+            </p>
+            <ul className="mt-6 space-y-3">
+              {[
+                { icon: Bot, t: "Agentes de Vendas, Treino e Estratégia", d: "Respondem com base no conhecimento da sua empresa." },
+                { icon: Mail, t: "Campanhas de Email e WhatsApp", d: "Sequências multi-toque, A/B e quotas com proteção anti-bloqueio." },
+                { icon: Store, t: "Marketplace de leads B2B", d: "Encontre contactos e importe-os direto para o funil." },
+                { icon: Gift, t: "Carteira & fidelização", d: "Saldo, vouchers e campanhas para fazer voltar os clientes." },
+              ].map((b) => (
+                <li key={b.t} className="flex items-start gap-3">
+                  <div className="h-9 w-9 shrink-0 rounded-lg bg-accent/15 text-accent flex items-center justify-center">
+                    <b.icon className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <div className="font-medium">{b.t}</div>
+                    <p className="text-sm text-muted-foreground">{b.d}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Chat / campaign mock */}
+          <div className="relative animate-reveal-up">
+            <div className="absolute -inset-6 bg-gradient-to-tr from-accent/10 via-primary/10 to-transparent rounded-3xl blur-2xl" />
+            <Card className="relative overflow-hidden border-border/60 shadow-[var(--shadow-elegant)]">
+              <div className="flex items-center gap-2 px-4 h-11 border-b bg-muted/40">
+                <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-primary text-primary-foreground">
+                  <Bot className="h-3.5 w-3.5" />
+                </span>
+                <span className="text-sm font-medium">Agente de Vendas</span>
+                <Badge className="ml-auto bg-success/15 text-success border-success/20 hover:bg-success/15">online</Badge>
+              </div>
+              <div className="p-4 space-y-3 bg-gradient-to-b from-surface-alt to-background">
+                <div className="max-w-[85%] rounded-2xl rounded-tl-sm bg-muted px-3 py-2 text-sm">
+                  Prepara uma abordagem para a clínica "Sorriso+", que não compra há 60 dias.
+                </div>
+                <div className="ml-auto max-w-[88%] rounded-2xl rounded-tr-sm bg-primary text-primary-foreground px-3 py-2 text-sm">
+                  Sugiro reativar com um voucher de 10%. Rascunho de WhatsApp:
+                  <span className="block mt-1 opacity-90">"Olá! Temos novidades e um mimo de 10% só para si 💙 Quer que reserve?"</span>
+                </div>
+                <div className="rounded-lg border bg-card p-3">
+                  <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
+                    <span className="inline-flex items-center gap-1"><MessageCircle className="h-3.5 w-3.5" /> Campanha · WhatsApp + Email</span>
+                    <span>Passo 2 de 3</span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 text-center">
+                    {[{ l: "Enviados", v: "1.240" }, { l: "Abertos", v: "62%" }, { l: "Respostas", v: "18%" }].map((k) => (
+                      <div key={k.l} className="rounded-md bg-muted/60 py-2">
+                        <div className="font-display font-bold">{k.v}</div>
+                        <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{k.l}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </div>
+        </div>
+      </section>
+
       {/* How it works */}
-      <section className="bg-surface-alt border-y">
+      <section className="bg-background">
         <div className="container-app py-20 lg:py-24">
           <div className="max-w-2xl mb-12">
             <Badge variant="outline" className="mb-4">Como funciona</Badge>
@@ -355,7 +456,7 @@ export default function Landing() {
       </section>
 
       {/* Pricing */}
-      <section id="precos" className="container-app py-20 lg:py-28">
+      <section id="precos" className="container-app py-20 lg:py-28 scroll-mt-16">
         <div className="max-w-2xl mx-auto text-center mb-14">
           <Badge variant="outline" className="mb-4">Preços</Badge>
           <h2 className="font-display text-3xl md:text-4xl font-bold tracking-tight">
@@ -443,7 +544,7 @@ export default function Landing() {
       </section>
 
       {/* FAQ */}
-      <section id="faq" className="container-app py-20 lg:py-24">
+      <section id="faq" className="container-app py-20 lg:py-24 scroll-mt-16">
         <div className="max-w-2xl mx-auto text-center mb-10">
           <Badge variant="outline" className="mb-4">FAQ</Badge>
           <h2 className="font-display text-3xl md:text-4xl font-bold tracking-tight">
