@@ -54,15 +54,20 @@ export async function issueInvoiceForOrder(
     return { ok: true, invoice: existing, already: true };
   }
 
-  // 3) Conector externo é OPCIONAL — apenas para sincronização com ERP.
-  const { data: connection } = await admin
+  // 3) Conector de faturação ATIVO (preferindo um certificado, se existir).
+  //    Um conector certificado impõe o guard-rail: a fatura só passa a "issued"
+  //    quando o software certificado devolver external_id + pdf_url (numeração/ATCUD).
+  const { data: invConns } = await admin
     .from("connections")
-    .select("id, status, config")
+    .select("id, status, config, connector_key, connector_definitions(category, is_certified)")
     .eq("organization_id", order.organization_id)
-    .eq("connector_key", CONNECTOR_KEY)
-    .maybeSingle();
-  const externalEnabled = !!connection && connection.status === "active"
-    && !!(connection.config as any)?.target_url;
+    .eq("status", "active");
+  const connection = (invConns ?? [])
+    .filter((cn: any) => cn.connector_definitions?.category === "invoicing")
+    .sort((a: any, b: any) => Number(b.connector_definitions?.is_certified) - Number(a.connector_definitions?.is_certified))[0] ?? null;
+  const connectorKey = connection?.connector_key ?? CONNECTOR_KEY;
+  const isCertified = !!connection?.connector_definitions?.is_certified;
+  const externalEnabled = !!connection && !!(connection.config as any)?.target_url;
 
   // 4) Carrega org (nome)
   const { data: org } = await admin
@@ -102,17 +107,20 @@ export async function issueInvoiceForOrder(
   }
   const internalNumber = String(numRes);
 
-  // 6) Cria fatura interna com status "issued" (snapshot dos totais).
+  // 6) Cria a fatura (snapshot dos totais). Conector certificado ⇒ começa em "pending"
+  //    (só passa a "issued" com external_id+pdf_url do software certificado). Caso
+  //    contrário (genérico/sem conector), emissão interna imediata como hoje.
   //    O índice único parcial protege contra concorrência (uma só por encomenda).
   const initialExternalStatus = externalEnabled ? "pending" : "not_synced";
+  const initialStatus = isCertified ? "pending" : "issued";
   const { data: invoice, error: invErr } = await admin
     .from("invoices")
     .insert({
       organization_id: order.organization_id,
       order_id: order.id,
       customer_id: order.customer_id,
-      connector_key: CONNECTOR_KEY,
-      status: "issued",
+      connector_key: connectorKey,
+      status: initialStatus,
       invoice_number: internalNumber,
       external_status: initialExternalStatus,
       currency: order.currency,
@@ -149,8 +157,11 @@ export async function issueInvoiceForOrder(
     return { ok: false, code: "invoice_create_failed", message: invErr?.message ?? "Falha ao criar fatura.", status: "error" };
   }
 
-  // Marca a encomenda como faturada (emissão interna concluída).
-  await admin.from("orders").update({ status: "faturada" }).eq("id", order.id);
+  // Marca a encomenda como faturada apenas quando a fatura fica efetivamente emitida
+  // (não-certificado). Com conector certificado, só após a sincronização (passo 10).
+  if (initialStatus === "issued") {
+    await admin.from("orders").update({ status: "faturada" }).eq("id", order.id);
+  }
 
   // 7) Se NÃO houver conector externo ativo, terminámos. Fatura interna está emitida.
   if (!externalEnabled) {
@@ -268,20 +279,29 @@ export async function issueInvoiceForOrder(
   // 10) Resposta OK — pode trazer pdf_url / id externo síncronos, ou apenas ACK.
   const pdfUrl = respJson?.pdf_url ?? respJson?.pdf ?? null;
   const externalId = respJson?.external_id ?? respJson?.id ?? null;
-  const syncedNow = !!(pdfUrl || externalId);
+  // Certificado exige AMBOS (external_id + pdf_url) para considerar emitido.
+  const syncedNow = isCertified ? !!(pdfUrl && externalId) : !!(pdfUrl || externalId);
 
-  await admin.from("invoices").update({
+  const updateFields: Record<string, unknown> = {
     external_status: syncedNow ? "synced" : "pending",
     pdf_url: pdfUrl ?? invoice.pdf_url,
     external_id: externalId ? String(externalId) : invoice.external_id,
     error_message: null,
-  }).eq("id", invoice.id);
+  };
+  // Conector certificado: a fatura só passa a "issued" agora, com os refs externos.
+  if (isCertified && syncedNow) updateFields.status = "issued";
+  await admin.from("invoices").update(updateFields).eq("id", invoice.id);
+
+  // Conector certificado: emissão fiscal concluída ⇒ marca a encomenda como faturada.
+  if (isCertified && syncedNow) {
+    await admin.from("orders").update({ status: "faturada" }).eq("id", order.id);
+  }
 
   if (externalId) {
     await admin.from("external_refs").upsert(
       {
         organization_id: order.organization_id,
-        connector_key: CONNECTOR_KEY,
+        connector_key: connectorKey,
         entity_type: "invoice",
         entity_id: invoice.id,
         external_id: String(externalId),
