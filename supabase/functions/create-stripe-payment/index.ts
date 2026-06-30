@@ -58,6 +58,13 @@ Deno.serve(async (req) => {
     return json(400, { error: "invalid_status", message: "A encomenda não está num estado pagável." });
   }
 
+  // Identidade legal do vendedor (organização) — informação pré-contratual ao consumidor.
+  const { data: org } = await admin
+    .from("organizations")
+    .select("name, legal_name, tax_id, legal_address, legal_email, legal_phone, return_policy, withdrawal_days")
+    .eq("id", order.organization_id)
+    .maybeSingle();
+
   // Reuse payment URL if it already exists
   if (order.payment_url && order.payment_ref) {
     return json(200, { payment_url: order.payment_url, payment_ref: order.payment_ref, reused: true });
@@ -87,6 +94,26 @@ Deno.serve(async (req) => {
   const successUrl = `${base}/app/orders?payment=success&order_id=${order.id}&session_id={CHECKOUT_SESSION_ID}`;
   const cancelUrl = `${base}/app/orders?payment=cancel&order_id=${order.id}`;
 
+  // Identidade do vendedor + informação pré-contratual (DL 24/2014)
+  const o = (org ?? {}) as Record<string, unknown>;
+  const sellerName = (o.legal_name as string) || (o.name as string) || "";
+  const wDays = Number(o.withdrawal_days ?? 14);
+  const productName = sellerName
+    ? `Encomenda ${order.order_number} — ${sellerName}`
+    : `Encomenda ${order.order_number}`;
+
+  const idParts: string[] = [];
+  if (sellerName) idParts.push(`Vendedor: ${sellerName}${o.tax_id ? ` (NIF ${o.tax_id})` : ""}`);
+  if (o.legal_address) idParts.push(String(o.legal_address));
+  const contact = [o.legal_email, o.legal_phone].filter(Boolean).join(" · ");
+  if (contact) idParts.push(`Contacto: ${contact}`);
+  idParts.push("Preço total a pagar, com IVA incluído quando aplicável.");
+  idParts.push(`Direito de livre resolução: ${wDays} dias (DL 24/2014).`);
+  if (o.return_policy) idParts.push(`Devoluções: ${o.return_policy}`);
+  idParts.push(`Termos: ${base}/termos · Privacidade: ${base}/privacidade`);
+  // Stripe custom_text aceita no máx. 1200 caracteres em texto simples.
+  const preContractual = idParts.join(" ").slice(0, 1190);
+
   // Create Stripe Checkout Session via form-encoded API
   const form = new URLSearchParams();
   form.append("mode", "payment");
@@ -95,10 +122,13 @@ Deno.serve(async (req) => {
   form.append("line_items[0][quantity]", "1");
   form.append("line_items[0][price_data][currency]", currency);
   form.append("line_items[0][price_data][unit_amount]", String(amountCents));
-  form.append("line_items[0][price_data][product_data][name]", `Encomenda ${order.order_number}`);
+  form.append("line_items[0][price_data][product_data][name]", productName);
+  form.append("custom_text[submit][message]", preContractual);
   form.append("metadata[organization_id]", order.organization_id);
   form.append("metadata[order_id]", order.id);
   form.append("metadata[order_number]", order.order_number);
+  if (sellerName) form.append("metadata[seller_name]", sellerName);
+  if (o.tax_id) form.append("metadata[seller_tax_id]", String(o.tax_id));
 
   const stripeRes = await fetch("https://api.stripe.com/v1/checkout/sessions", {
     method: "POST",

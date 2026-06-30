@@ -2292,12 +2292,19 @@ export type Database = {
           currency: string
           id: string
           invoice_mode: Database["public"]["Enums"]["invoice_mode"]
+          legal_address: string | null
+          legal_email: string | null
+          legal_name: string | null
+          legal_phone: string | null
           locale: string
           logo_url: string | null
           name: string
           primary_color: string
+          return_policy: string | null
           slug: string | null
+          tax_id: string | null
           updated_at: string
+          withdrawal_days: number
         }
         Insert: {
           country?: string
@@ -2306,12 +2313,19 @@ export type Database = {
           currency?: string
           id?: string
           invoice_mode?: Database["public"]["Enums"]["invoice_mode"]
+          legal_address?: string | null
+          legal_email?: string | null
+          legal_name?: string | null
+          legal_phone?: string | null
           locale?: string
           logo_url?: string | null
           name: string
           primary_color?: string
+          return_policy?: string | null
           slug?: string | null
+          tax_id?: string | null
           updated_at?: string
+          withdrawal_days?: number
         }
         Update: {
           country?: string
@@ -2320,12 +2334,19 @@ export type Database = {
           currency?: string
           id?: string
           invoice_mode?: Database["public"]["Enums"]["invoice_mode"]
+          legal_address?: string | null
+          legal_email?: string | null
+          legal_name?: string | null
+          legal_phone?: string | null
           locale?: string
           logo_url?: string | null
           name?: string
           primary_color?: string
+          return_policy?: string | null
           slug?: string | null
+          tax_id?: string | null
           updated_at?: string
+          withdrawal_days?: number
         }
         Relationships: []
       }
@@ -4514,12 +4535,19 @@ export type Database = {
           currency: string
           id: string
           invoice_mode: Database["public"]["Enums"]["invoice_mode"]
+          legal_address: string | null
+          legal_email: string | null
+          legal_name: string | null
+          legal_phone: string | null
           locale: string
           logo_url: string | null
           name: string
           primary_color: string
+          return_policy: string | null
           slug: string | null
+          tax_id: string | null
           updated_at: string
+          withdrawal_days: number
         }
         SetofOptions: {
           from: "*"

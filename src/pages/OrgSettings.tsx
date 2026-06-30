@@ -54,6 +54,16 @@ export default function OrgSettings() {
   const [invoiceMode, setInvoiceMode] = useState<InvoiceMode>("manual");
   const [busy, setBusy] = useState(false);
 
+  // ---- Identidade legal (vendedor) ----
+  const [legalName, setLegalName] = useState("");
+  const [taxId, setTaxId] = useState("");
+  const [legalAddress, setLegalAddress] = useState("");
+  const [legalEmail, setLegalEmail] = useState("");
+  const [legalPhone, setLegalPhone] = useState("");
+  const [returnPolicy, setReturnPolicy] = useState("");
+  const [withdrawalDays, setWithdrawalDays] = useState(14);
+  const [legalBusy, setLegalBusy] = useState(false);
+
   // ---- IVA / Fiscalidade ----
   const [vatBusy, setVatBusy] = useState(false);
   const [vatLoaded, setVatLoaded] = useState(false);
@@ -72,8 +82,40 @@ export default function OrgSettings() {
       setCurrency(activeOrg.currency);
       setCountry(activeOrg.country);
       setInvoiceMode(((activeOrg as any).invoice_mode as InvoiceMode) ?? "manual");
+      const o = activeOrg as any;
+      setLegalName(o.legal_name ?? "");
+      setTaxId(o.tax_id ?? "");
+      setLegalAddress(o.legal_address ?? "");
+      setLegalEmail(o.legal_email ?? "");
+      setLegalPhone(o.legal_phone ?? "");
+      setReturnPolicy(o.return_policy ?? "");
+      setWithdrawalDays(Number(o.withdrawal_days ?? 14));
     }
   }, [activeOrg]);
+
+  const saveLegal = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!isAdmin) return;
+    setLegalBusy(true);
+    const { error } = await supabase
+      .from("organizations")
+      .update({
+        legal_name: legalName.trim() || null,
+        tax_id: taxId.trim() || null,
+        legal_address: legalAddress.trim() || null,
+        legal_email: legalEmail.trim() || null,
+        legal_phone: legalPhone.trim() || null,
+        return_policy: returnPolicy.trim() || null,
+        withdrawal_days: Number.isFinite(withdrawalDays) ? withdrawalDays : 14,
+      } as never)
+      .eq("id", activeOrg!.id);
+    setLegalBusy(false);
+    if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
+    else {
+      toast({ title: "Identidade legal guardada" });
+      await refresh();
+    }
+  };
 
   // Carrega definições fiscais + taxas UE de referência.
   useEffect(() => {
@@ -215,6 +257,61 @@ export default function OrgSettings() {
             </div>
             {isAdmin ? (
               <Button type="submit" disabled={busy}>Guardar</Button>
+            ) : (
+              <p className="text-sm text-muted-foreground">Apenas administradores podem editar.</p>
+            )}
+          </form>
+        </CardContent>
+      </Card>
+
+      {/* ============ Identidade legal (vendedor) ============ */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Identidade legal e venda ao consumidor</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={saveLegal} className="space-y-4">
+            <p className="text-xs text-muted-foreground">
+              Estes dados identificam a sua organização como <strong>vendedor</strong> e são apresentados ao
+              cliente final no momento do pagamento (informação pré-contratual — DL 24/2014).
+            </p>
+            <div className="grid md:grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="legal_name">Denominação legal</Label>
+                <Input id="legal_name" value={legalName} onChange={(e) => setLegalName(e.target.value)} disabled={!isAdmin} placeholder="Ex.: Exemplo, Lda." />
+              </div>
+              <div>
+                <Label htmlFor="tax_id">NIF</Label>
+                <Input id="tax_id" value={taxId} onChange={(e) => setTaxId(e.target.value)} disabled={!isAdmin} placeholder="500000000" />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="legal_address">Morada / sede</Label>
+              <Input id="legal_address" value={legalAddress} onChange={(e) => setLegalAddress(e.target.value)} disabled={!isAdmin} placeholder="Rua, código postal, localidade, país" />
+            </div>
+            <div className="grid md:grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="legal_email">Email de contacto</Label>
+                <Input id="legal_email" type="email" value={legalEmail} onChange={(e) => setLegalEmail(e.target.value)} disabled={!isAdmin} placeholder="geral@exemplo.pt" />
+              </div>
+              <div>
+                <Label htmlFor="legal_phone">Telefone</Label>
+                <Input id="legal_phone" value={legalPhone} onChange={(e) => setLegalPhone(e.target.value)} disabled={!isAdmin} placeholder="+351 …" />
+              </div>
+            </div>
+            <div className="grid md:grid-cols-[1fr_180px] gap-3">
+              <div>
+                <Label htmlFor="return_policy">Política de devoluções/reembolsos</Label>
+                <Textarea id="return_policy" rows={2} value={returnPolicy} onChange={(e) => setReturnPolicy(e.target.value)} disabled={!isAdmin} maxLength={500} placeholder="Condições de devolução e reembolso aplicáveis às suas vendas." />
+              </div>
+              <div>
+                <Label htmlFor="withdrawal_days">Livre resolução (dias)</Label>
+                <Input id="withdrawal_days" type="number" min={0} max={365} value={withdrawalDays} onChange={(e) => setWithdrawalDays(parseInt(e.target.value || "0", 10))} disabled={!isAdmin} />
+                <p className="text-[11px] text-muted-foreground mt-1">Por defeito 14 dias (consumidores).</p>
+              </div>
+            </div>
+            {isAdmin ? (
+              <Button type="submit" disabled={legalBusy}>Guardar</Button>
             ) : (
               <p className="text-sm text-muted-foreground">Apenas administradores podem editar.</p>
             )}
