@@ -59,6 +59,8 @@ export default function OrderFormDialog({
   const [status, setStatus] = useState<OrderStatus>("rascunho");
   const [lines, setLines] = useState<LineDraft[]>([emptyLine()]);
   // Morada de entrega alternativa (Fase 2)
+  const [deliveryMethod, setDeliveryMethod] = useState<"pickup" | "carrier">("carrier");
+  const [deliveryCarrier, setDeliveryCarrier] = useState("");
   const [shipToOn, setShipToOn] = useState(false);
   const [shipTo, setShipTo] = useState({
     name: "", address: "", city: "", postal_code: "", country: "",
@@ -143,6 +145,8 @@ export default function OrderFormDialog({
       setNotes(order.notes ?? "");
       setStatus(order.status);
       setServerOrder(order);
+      setDeliveryMethod(((order as any).delivery_method as "pickup" | "carrier") ?? "carrier");
+      setDeliveryCarrier((order as any).delivery_carrier ?? "");
       const hasShipTo = !!(order as any).ship_to_country || !!(order as any).ship_to_address;
       setShipToOn(hasShipTo);
       setShipTo({
@@ -154,8 +158,10 @@ export default function OrderFormDialog({
       });
       supabase.from("order_lines").select("*").eq("order_id", order.id).order("created_at")
         .then(({ data }) => {
-          setLines((data && data.length > 0
-            ? data.map((l) => ({
+          // Exclui a linha de "Portes de envio" (gerida automaticamente, não editável aqui).
+          const editable = (data ?? []).filter((l) => !(l.product_id === null && l.description === "Portes de envio"));
+          setLines((editable.length > 0
+            ? editable.map((l) => ({
                 id: l.id, product_id: l.product_id, description: l.description,
                 quantity: String(l.quantity), unit_price: String(l.unit_price),
                 tax_rate: String(l.tax_rate), discount_percent: String(l.discount_percent),
@@ -166,6 +172,7 @@ export default function OrderFormDialog({
       setCustomerId(""); setOrderDate(new Date().toISOString().slice(0, 10));
       setNotes(""); setStatus("rascunho"); setLines([emptyLine()]);
       setServerOrder(null);
+      setDeliveryMethod("carrier"); setDeliveryCarrier("");
       setShipToOn(false);
       setShipTo({ name: "", address: "", city: "", postal_code: "", country: "" });
     }
@@ -280,6 +287,8 @@ export default function OrderFormDialog({
         currency,
         notes: notes.trim() || null,
         created_by: user.id,
+        delivery_method: deliveryMethod,
+        delivery_carrier: deliveryMethod === "carrier" ? (deliveryCarrier.trim() || null) : null,
         ...shipFields,
       }).select("id").single();
       if (insErr) { setBusy(false); toast({ title: "Erro", description: insErr.message, variant: "destructive" }); return; }
@@ -288,6 +297,8 @@ export default function OrderFormDialog({
       const { error: upErr } = await supabase.from("orders").update({
         customer_id: customerId, status: finalStatus, order_date: orderDate,
         notes: notes.trim() || null,
+        delivery_method: deliveryMethod,
+        delivery_carrier: deliveryMethod === "carrier" ? (deliveryCarrier.trim() || null) : null,
         ...shipFields,
       }).eq("id", order.id);
       if (upErr) { setBusy(false); toast({ title: "Erro", description: upErr.message, variant: "destructive" }); return; }
@@ -312,6 +323,12 @@ export default function OrderFormDialog({
       await supabase.rpc("resolve_order_vat_treatment" as any, { p_order_id: orderId! });
     } catch {
       /* triggers já cobrem a maior parte dos casos — não bloqueia o fluxo */
+    }
+    // Aplicar portes automaticamente (linha "Portes de envio" segundo as regras; 0 em levantamento).
+    try {
+      await supabase.rpc("set_order_shipping" as any, { _order_id: orderId! });
+    } catch {
+      /* sem regras de portes definidas — não bloqueia */
     }
     setBusy(false);
 
@@ -340,6 +357,31 @@ export default function OrderFormDialog({
               <Label>Data</Label>
               <Input type="date" value={orderDate} onChange={(e) => setOrderDate(e.target.value)} />
             </div>
+          </div>
+
+          {/* Método de envio */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 border rounded p-3">
+            <div>
+              <Label className="text-sm">Método de envio</Label>
+              <Select value={deliveryMethod} onValueChange={(v) => setDeliveryMethod(v as "pickup" | "carrier")}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="carrier">Envio por transportadora</SelectItem>
+                  <SelectItem value="pickup">Levantamento no armazém</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-muted-foreground mt-1">
+                {deliveryMethod === "carrier"
+                  ? "Os portes são calculados pelas regras de envio e os dados de transporte vão na fatura."
+                  : "Sem portes; o cliente levanta no armazém."}
+              </p>
+            </div>
+            {deliveryMethod === "carrier" && (
+              <div>
+                <Label className="text-sm">Transportadora</Label>
+                <Input value={deliveryCarrier} onChange={(e) => setDeliveryCarrier(e.target.value)} maxLength={120} placeholder="Ex.: CTT, DPD…" />
+              </div>
+            )}
           </div>
 
           {/* Morada de entrega (Fase 2 IVA) */}

@@ -25,6 +25,7 @@ import Subscriptions from "@/pages/Subscriptions";
 import Integrations from "@/pages/Integrations";
 import Commissions from "@/pages/Commissions";
 import Reconciliation from "@/pages/Reconciliation";
+import ShippingRules from "@/pages/ShippingRules";
 import Plan from "@/pages/Plan";
 import Pareto from "@/pages/Pareto";
 import ProductComparison from "@/pages/ProductComparison";
@@ -133,6 +134,7 @@ const App = () => (
                 <Route path="whatsapp" element={<RequireFeature feature="module_outreach"><OutreachWhatsApp /></RequireFeature>} />
                 <Route path="products" element={<Products />} />
                 <Route path="channels" element={<Channels />} />
+                <Route path="shipping" element={<ShippingRules />} />
                 <Route path="orders" element={<Orders />} />
                 <Route path="subscriptions" element={<Subscriptions />} />
                 <Route path="invoices" element={<Invoices />} />

@@ -2,7 +2,7 @@ import {
   LayoutDashboard, Users, Target, Package, ShoppingCart, FileText, Wallet, Plug,
   Settings as SettingsIcon, BarChart3, Scale, Phone, History, CalendarDays, Sparkles,
   Shuffle, Tags, AlertCircle, RotateCcw, Ticket, Trophy, Store, Calculator, Bot, BookOpen,
-  Repeat, BadgePercent, Percent, PieChart, Filter, Network, Send, Inbox, MessageCircle, ShieldCheck,
+  Repeat, BadgePercent, Percent, PieChart, Filter, Network, Send, Inbox, MessageCircle, ShieldCheck, Truck,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -41,6 +41,7 @@ export const GROUPS: NavGroup[] = [
     { title: "Produtos", url: "/app/products", icon: Package },
     { title: "Canais de venda", url: "/app/channels", icon: Network },
     { title: "Preços & Descontos", url: "/app/pricing", icon: Percent },
+    { title: "Portes de envio", url: "/app/shipping", icon: Truck, adminOnly: true },
   ]},
   { label: "Análise", gate: "analytics", tourId: "analise", items: [
     { title: "Análise de Pareto", url: "/app/pareto", icon: BarChart3 },

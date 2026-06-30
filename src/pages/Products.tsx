@@ -55,7 +55,7 @@ function ProductDialog({
   const [channelSel, setChannelSel] = useState<Record<string, { on: boolean; sku: string; price: string }>>({});
   const [form, setForm] = useState({
     name: "", sku: "", description: "", product_type: "produto" as ProductType,
-    category: "", unit_price: "0", unit_cost: "0", tax_rate: "23", is_tax_exempt: false,
+    category: "", unit_price: "0", unit_cost: "0", weight_kg: "0", tax_rate: "23", is_tax_exempt: false,
     tracks_stock: false, stock_quantity: "0", low_stock_threshold: "", is_active: true,
     price_group_id: "", parent_product_id: "", variant_label: "",
   });
@@ -81,6 +81,7 @@ function ProductDialog({
         category: product.category ?? "",
         unit_price: String(product.unit_price ?? 0),
         unit_cost: String((product as any).unit_cost ?? 0),
+        weight_kg: String((product as any).weight_kg ?? 0),
         tax_rate: String(product.tax_rate ?? 23),
         is_tax_exempt: product.is_tax_exempt,
         tracks_stock: product.tracks_stock,
@@ -102,7 +103,7 @@ function ProductDialog({
     } else {
       setForm({
         name: "", sku: "", description: "", product_type: "produto", category: "",
-        unit_price: "0", unit_cost: "0", tax_rate: "23", is_tax_exempt: false,
+        unit_price: "0", unit_cost: "0", weight_kg: "0", tax_rate: "23", is_tax_exempt: false,
         tracks_stock: false, stock_quantity: "0", low_stock_threshold: "", is_active: true,
         price_group_id: "", parent_product_id: "", variant_label: "",
       });
@@ -134,6 +135,7 @@ function ProductDialog({
       category: form.category.trim() || null,
       unit_price: Number(form.unit_price) || 0,
       unit_cost: Number(form.unit_cost) || 0,
+      weight_kg: Number(form.weight_kg) || 0,
       tax_rate: form.is_tax_exempt ? 0 : (Number(form.tax_rate) || 0),
       is_tax_exempt: form.is_tax_exempt,
       currency: activeOrg.currency || "EUR",
@@ -317,6 +319,10 @@ function ProductDialog({
             <div>
               <Label>Custo unitário</Label>
               <Input type="number" step="0.01" min="0" value={form.unit_cost} onChange={(e) => setForm({ ...form, unit_cost: e.target.value })} />
+            </div>
+            <div>
+              <Label>Peso (kg)</Label>
+              <Input type="number" step="0.001" min="0" value={form.weight_kg} onChange={(e) => setForm({ ...form, weight_kg: e.target.value })} />
             </div>
             <div>
               <Label>Taxa IVA (%)</Label>

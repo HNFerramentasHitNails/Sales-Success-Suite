@@ -53,6 +53,9 @@ Deno.serve(async (req) => {
     const { data: order } = await admin.from("orders").select("*, customers(*), order_lines(*)").eq("id", orderId).maybeSingle();
     if (!order) return json({ ok: false, error: "order_not_found" }, 404);
     const orgId = order.organization_id as string;
+    const { data: org } = await admin.from("organizations")
+      .select("warehouse_address, warehouse_city, warehouse_postal_code, warehouse_country, legal_address")
+      .eq("id", orgId).maybeSingle();
 
     const { data: member } = await admin.from("organization_members").select("role").eq("organization_id", orgId).eq("user_id", userId).eq("status", "active").maybeSingle();
     if (!member || !["owner", "admin"].includes(member.role)) return json({ ok: false, error: "forbidden" }, 403);
@@ -172,8 +175,24 @@ Deno.serve(async (req) => {
       lines.push(prod);
     }
 
+    // Dados de transporte (a fatura serve de documento de transporte AT quando há envio por transportadora).
+    const transport: Record<string, unknown> = {};
+    if ((order as any).delivery_method === "carrier") {
+      const dtv = (order as any).delivery_datetime;
+      const dt = dtv ? new Date(dtv) : new Date();
+      transport.delivery_datetime = dt.toISOString().slice(0, 19).replace("T", " ");
+      transport.delivery_departure_address = (org as any)?.warehouse_address || (org as any)?.legal_address || "Desconhecido";
+      transport.delivery_departure_city = (org as any)?.warehouse_city || "";
+      transport.delivery_departure_zip_code = (org as any)?.warehouse_postal_code || "";
+      transport.delivery_departure_country = 1;
+      transport.delivery_destination_address = (order as any).ship_to_address || c.address || "Desconhecido";
+      transport.delivery_destination_city = (order as any).ship_to_city || c.city || "";
+      transport.delivery_destination_zip_code = (order as any).ship_to_postal_code || c.postal_code || "";
+      transport.delivery_destination_country = countryId;
+    }
+
     const today = new Date().toISOString().slice(0, 10);
-    const inserted = await mPost("/invoices/insert/", token, { company_id: companyId, date: today, expiration_date: today, document_set_id: documentSetId, customer_id: custId, your_reference: order.order_number ?? "", status: 1, products: lines });
+    const inserted = await mPost("/invoices/insert/", token, { company_id: companyId, date: today, expiration_date: today, document_set_id: documentSetId, customer_id: custId, your_reference: order.order_number ?? "", status: 1, ...transport, products: lines });
     const documentId = posInt(inserted?.document_id);
     if (!documentId) return json({ ok: false, error: "insert_failed", message: `Resposta sem document_id: ${JSON.stringify(inserted).slice(0, 300)}` });
 
