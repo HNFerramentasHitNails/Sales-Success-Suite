@@ -223,6 +223,21 @@ export default function Integrations() {
     else setWebhook(data);
   }
 
+  async function testMoloni(c: Connection) {
+    try {
+      const { data, error } = await supabase.functions.invoke("moloni-test-connection", {
+        body: { connection_id: c.id },
+      });
+      if (error) throw error;
+      const d = data as any;
+      if (d?.ok) toast({ title: "Ligação Moloni OK", description: `Empresa ${d.company_id}${d.company_name ? " — " + d.company_name : ""} (${d.companies_count} empresa(s) na conta).` });
+      else toast({ title: "Falha na ligação Moloni", description: d?.message ?? d?.error ?? "Erro desconhecido", variant: "destructive" });
+      load();
+    } catch (e: any) {
+      toast({ title: "Erro", description: e?.message ?? String(e), variant: "destructive" });
+    }
+  }
+
   async function testStripe(c: Connection) {
     try {
       const { data, error } = await supabase.functions.invoke("stripe-test-connection", {
@@ -290,6 +305,11 @@ export default function Integrations() {
                             </Button>
                             {d.key === "stripe" && c.status === "active" && (
                               <Button size="sm" variant="outline" onClick={() => testStripe(c)}>
+                                Testar ligação
+                              </Button>
+                            )}
+                            {d.key === "moloni" && c.status === "active" && (
+                              <Button size="sm" variant="outline" onClick={() => testMoloni(c)}>
                                 Testar ligação
                               </Button>
                             )}
