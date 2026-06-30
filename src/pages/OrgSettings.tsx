@@ -64,6 +64,10 @@ export default function OrgSettings() {
   const [withdrawalDays, setWithdrawalDays] = useState(14);
   const [legalBusy, setLegalBusy] = useState(false);
 
+  // ---- Privacidade de colaboradores ----
+  const [rankingsHideNames, setRankingsHideNames] = useState(false);
+  const [rankBusy, setRankBusy] = useState(false);
+
   // ---- IVA / Fiscalidade ----
   const [vatBusy, setVatBusy] = useState(false);
   const [vatLoaded, setVatLoaded] = useState(false);
@@ -90,8 +94,22 @@ export default function OrgSettings() {
       setLegalPhone(o.legal_phone ?? "");
       setReturnPolicy(o.return_policy ?? "");
       setWithdrawalDays(Number(o.withdrawal_days ?? 14));
+      setRankingsHideNames(!!o.rankings_hide_names);
     }
   }, [activeOrg]);
+
+  const saveRankings = async (next: boolean) => {
+    if (!isAdmin || !activeOrg) return;
+    setRankBusy(true);
+    setRankingsHideNames(next);
+    const { error } = await supabase
+      .from("organizations")
+      .update({ rankings_hide_names: next } as never)
+      .eq("id", activeOrg.id);
+    setRankBusy(false);
+    if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); setRankingsHideNames(!next); }
+    else { toast({ title: "Definição guardada" }); await refresh(); }
+  };
 
   const saveLegal = async (e: FormEvent) => {
     e.preventDefault();
@@ -316,6 +334,31 @@ export default function OrgSettings() {
               <p className="text-sm text-muted-foreground">Apenas administradores podem editar.</p>
             )}
           </form>
+        </CardContent>
+      </Card>
+
+      {/* ============ Privacidade de colaboradores ============ */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Privacidade de colaboradores</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-start justify-between gap-4 border rounded p-3">
+            <div className="space-y-1">
+              <Label className="text-sm">Ocultar nomes nos rankings</Label>
+              <p className="text-xs text-muted-foreground">
+                Quando ativo, os comerciais veem os rankings de equipa de forma anónima (ex.: "Comercial #1");
+                apenas gestores (admin/diretor) veem os nomes. Evita exposição desproporcionada entre colegas.
+              </p>
+            </div>
+            <Switch checked={rankingsHideNames} onCheckedChange={saveRankings} disabled={!isAdmin || rankBusy} />
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Consulte o{" "}
+            <a href="/colaboradores" target="_blank" rel="noopener noreferrer" className="underline">
+              Aviso de Privacidade para Colaboradores
+            </a>.
+          </p>
         </CardContent>
       </Card>
 

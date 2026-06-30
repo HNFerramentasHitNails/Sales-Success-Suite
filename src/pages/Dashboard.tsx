@@ -419,7 +419,11 @@ export default function Dashboard() {
                 <TableBody>
                   {team.map((r, i) => (
                     <TableRow key={r.member_id ?? `n-${i}`}>
-                      <TableCell className="font-medium">{r.member_name ?? "Sem comercial"}</TableCell>
+                      <TableCell className="font-medium">
+                        {(activeOrg as { rankings_hide_names?: boolean })?.rankings_hide_names && !isAdmin
+                          ? `Comercial #${i + 1}`
+                          : (r.member_name ?? "Sem comercial")}
+                      </TableCell>
                       <TableCell className="text-right">{r.num_orders}</TableCell>
                       <TableCell className="text-right">{fmtMoneyFull(Number(r.total))}</TableCell>
                     </TableRow>

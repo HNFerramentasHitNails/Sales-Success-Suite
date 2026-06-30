@@ -351,7 +351,9 @@ export default function Achievements() {
                       </div>
                       <div className="min-w-0">
                         <div className="font-medium truncate">
-                          {r.member_name ?? "—"}
+                          {(activeOrg as { rankings_hide_names?: boolean })?.rankings_hide_names && !isAdmin && !isMe
+                            ? `Comercial #${i + 1}`
+                            : (r.member_name ?? "—")}
                           {isMe && (
                             <Badge variant="outline" className="ml-2 text-[10px]">
                               Eu

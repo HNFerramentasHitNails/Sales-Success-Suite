@@ -841,6 +841,11 @@ export default function DistributionPartners() {
                   onChange={(e) => setContractDraft({ ...contractDraft, terms: e.target.value })}
                   maxLength={4000}
                 />
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  ⚖️ Descontos por volume e preços de grosso são permitidos; <strong>impor um preço mínimo de
+                  revenda (RPM)</strong> ao distribuidor é proibido pelo direito da concorrência (UE/PT). Defina
+                  preços de venda sugeridos, não obrigatórios.
+                </p>
               </div>
               <div>
                 <Label>URL do documento</Label>

@@ -15,6 +15,7 @@ const LEGAL_LINKS = [
   { to: "/aviso-legal", label: "Aviso Legal" },
   { to: "/subprocessadores", label: "Subprocessadores" },
   { to: "/dpa", label: "DPA" },
+  { to: "/colaboradores", label: "Colaboradores" },
 ];
 
 export default function LegalLayout({ title, updated, children }: Props) {
