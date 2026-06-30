@@ -145,13 +145,24 @@ function ProductDialog({
       parent_product_id: form.parent_product_id || null,
       variant_label: form.parent_product_id ? (form.variant_label.trim() || null) : null,
     } as any;
+    const desiredStock = form.tracks_stock ? (Number(form.stock_quantity) || 0) : 0;
     let productId = product?.id as string | undefined;
     if (product) {
-      const { error } = await supabase.from("products").update(payload).eq("id", product.id);
+      // Stock é gerido pelo ledger (set_product_stock); não escrever a coluna diretamente.
+      const { stock_quantity: _ignored, ...updPayload } = payload;
+      const { error } = await supabase.from("products").update(updPayload).eq("id", product.id);
       if (error) {
         setBusy(false);
         const msg = error.message.includes("products_org_sku_unique") ? "Já existe um produto com este SKU." : error.message;
         toast({ title: "Erro", description: msg, variant: "destructive" });
+        return;
+      }
+      const { error: se } = await supabase.rpc("set_product_stock" as any, { p_product: product.id, p_new_qty: desiredStock, p_reason: "manual_adjustment" });
+      if (se) {
+        setBusy(false);
+        toast({ title: "Produto guardado, mas o stock não foi ajustado", description: se.message, variant: "destructive" });
+        onSaved();
+        onOpenChange(false);
         return;
       }
     } else {
