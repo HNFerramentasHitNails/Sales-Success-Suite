@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Search, Trash2, CreditCard, ExternalLink, Copy, FileText, Upload, Wallet, Loader2 } from "lucide-react";
+import { Plus, Search, Trash2, CreditCard, ExternalLink, Copy, FileText, Upload, Wallet, Loader2, RotateCcw } from "lucide-react";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -235,6 +235,25 @@ export default function Orders() {
     load();
   }
 
+  async function revertWallet(o: Row) {
+    const applied = Number((o as any).wallet_balance_applied ?? 0);
+    if (!confirm(`Remover a carteira aplicada (${fmtMoney(applied, o.currency || currency)}) da encomenda ${o.order_number}? O valor volta ao saldo do cliente.`)) return;
+    setPayingWalletFor(o.id);
+    const { error } = await supabase.rpc("revert_order_wallet" as never, { _order_id: o.id } as never);
+    setPayingWalletFor(null);
+    if (error) {
+      const map: Record<string, string> = {
+        no_wallet_applied: "Esta encomenda não tem carteira aplicada.",
+        order_invoiced: "A encomenda já foi faturada; não é possível remover a carteira.",
+        forbidden: "Sem permissão.",
+      };
+      toast({ title: "Não foi possível remover", description: map[error.message] ?? error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Carteira removida", description: "Pode aplicar novamente o montante que quiser." });
+    load();
+  }
+
   function copyText(text: string) {
     navigator.clipboard.writeText(text);
     toast({ title: "Copiado" });
@@ -325,6 +344,8 @@ export default function Orders() {
                   && !["paga", "faturada", "cancelada"].includes(o.status)
                   && walletApplied <= 0
                   && walletBal > 0;
+                const canRevertWallet = canWrite && walletApplied > 0
+                  && !["faturada", "cancelada"].includes(o.status);
                 return (
                   <TableRow key={o.id} className="cursor-pointer hover:bg-muted/40" onClick={() => canWrite && openEdit(o)}>
                     <TableCell className="font-medium">{o.order_number}</TableCell>
@@ -357,6 +378,15 @@ export default function Orders() {
                               ? <Loader2 className="h-4 w-4 mr-1 animate-spin" />
                               : <Wallet className="h-4 w-4 mr-1" />}
                             Carteira
+                          </Button>
+                        )}
+                        {canRevertWallet && (
+                          <Button size="sm" variant="ghost" disabled={payingWalletFor === o.id}
+                            onClick={() => revertWallet(o)}
+                            title={`Remover/ajustar a carteira aplicada (${fmtMoney(walletApplied, o.currency || currency)})`}>
+                            {payingWalletFor === o.id
+                              ? <Loader2 className="h-4 w-4 animate-spin" />
+                              : <RotateCcw className="h-4 w-4" />}
                           </Button>
                         )}
                         {canPay && (
