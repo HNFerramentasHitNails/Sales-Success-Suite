@@ -62,6 +62,7 @@ export default function OrgSettings() {
   const [legalPhone, setLegalPhone] = useState("");
   const [returnPolicy, setReturnPolicy] = useState("");
   const [withdrawalDays, setWithdrawalDays] = useState(14);
+  const [rmaThreshold, setRmaThreshold] = useState("");
   const [legalBusy, setLegalBusy] = useState(false);
 
   // ---- Privacidade de colaboradores ----
@@ -94,6 +95,7 @@ export default function OrgSettings() {
       setLegalPhone(o.legal_phone ?? "");
       setReturnPolicy(o.return_policy ?? "");
       setWithdrawalDays(Number(o.withdrawal_days ?? 14));
+      setRmaThreshold(o.rma_dual_approval_threshold != null ? String(o.rma_dual_approval_threshold) : "");
       setRankingsHideNames(!!o.rankings_hide_names);
     }
   }, [activeOrg]);
@@ -125,6 +127,7 @@ export default function OrgSettings() {
         legal_phone: legalPhone.trim() || null,
         return_policy: returnPolicy.trim() || null,
         withdrawal_days: Number.isFinite(withdrawalDays) ? withdrawalDays : 14,
+        rma_dual_approval_threshold: rmaThreshold.trim() === "" ? null : Number(rmaThreshold),
       } as never)
       .eq("id", activeOrg!.id);
     setLegalBusy(false);
@@ -326,6 +329,16 @@ export default function OrgSettings() {
                 <Label htmlFor="withdrawal_days">Livre resolução (dias)</Label>
                 <Input id="withdrawal_days" type="number" min={0} max={365} value={withdrawalDays} onChange={(e) => setWithdrawalDays(parseInt(e.target.value || "0", 10))} disabled={!isAdmin} />
                 <p className="text-[11px] text-muted-foreground mt-1">Por defeito 14 dias (consumidores).</p>
+              </div>
+            </div>
+            <div className="grid md:grid-cols-[1fr_180px] gap-3">
+              <div className="flex items-end">
+                <p className="text-[11px] text-muted-foreground">Acima deste valor, a devolução tem de ser aprovada e regularizada por um responsável diferente de quem a criou (segregação de funções).</p>
+              </div>
+              <div>
+                <Label htmlFor="rma_threshold">Limite p/ dupla aprovação (devoluções)</Label>
+                <Input id="rma_threshold" type="number" min={0} step="0.01" value={rmaThreshold} onChange={(e) => setRmaThreshold(e.target.value)} disabled={!isAdmin} placeholder="sem limite" />
+                <p className="text-[11px] text-muted-foreground mt-1">Vazio = controlo desligado.</p>
               </div>
             </div>
             {isAdmin ? (
