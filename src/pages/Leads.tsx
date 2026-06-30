@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as XLSX from "xlsx";
 import {
-  Users, Plus, Upload, Trash2, Search, RotateCcw, MessageCircle, ArrowUpRight, Loader2, BellOff,
+  Users, Plus, Upload, Trash2, Search, RotateCcw, MessageCircle, ArrowUpRight, Loader2, BellOff, Store,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/contexts/OrganizationContext";
@@ -66,6 +66,7 @@ export default function Leads() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [countryFilter, setCountryFilter] = useState("all");
+  const [typeFilter, setTypeFilter] = useState("all");
   const [showTrash, setShowTrash] = useState(false);
 
   // novo lead
@@ -108,12 +109,15 @@ export default function Leads() {
     return rows.filter((r) => {
       if (statusFilter !== "all" && r.status !== statusFilter) return false;
       if (countryFilter !== "all" && r.country !== countryFilter) return false;
+      const reseller = !!(r as Lead & { is_reseller?: boolean }).is_reseller;
+      if (typeFilter === "resellers" && !reseller) return false;
+      if (typeFilter === "clients" && reseller) return false;
       if (!s) return true;
       return [r.name, r.email, r.company, r.niche, r.city]
         .filter(Boolean)
         .some((v) => (v as string).toLowerCase().includes(s));
     });
-  }, [rows, search, statusFilter, countryFilter]);
+  }, [rows, search, statusFilter, countryFilter, typeFilter]);
 
   const kpis = useMemo(() => ({
     total: rows.length,
@@ -324,6 +328,14 @@ export default function Leads() {
             {COUNTRIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
           </SelectContent>
         </Select>
+        <Select value={typeFilter} onValueChange={setTypeFilter}>
+          <SelectTrigger className="w-[160px]"><SelectValue placeholder="Tipo" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os tipos</SelectItem>
+            <SelectItem value="resellers">Revendedores</SelectItem>
+            <SelectItem value="clients">Clientes / Leads</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {/* tabela */}
@@ -361,6 +373,11 @@ export default function Leads() {
                   <TableCell>
                     <div className="flex items-center gap-1">
                       <Badge variant={STATUS_VARIANT[r.status] ?? "secondary"}>{STATUS_LABELS[r.status] ?? r.status}</Badge>
+                      {(r as Lead & { is_reseller?: boolean }).is_reseller && (
+                        <Badge variant="outline" className="gap-1 text-amber-700 border-amber-400/50 dark:text-amber-300" title="Potencial revendedor">
+                          <Store className="h-3 w-3" /> Revendedor
+                        </Badge>
+                      )}
                       {(r as Lead & { opted_out?: boolean }).opted_out && (
                         <Badge variant="outline" className="gap-1 text-destructive border-destructive/40" title="Não contactar">
                           <BellOff className="h-3 w-3" /> Opt-out
