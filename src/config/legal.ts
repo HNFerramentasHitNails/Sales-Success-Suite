@@ -6,7 +6,7 @@ export const LEGAL = {
   entidadeLegal: "Luckytarget, Lda",
   marcaComercial: "HN Hit Nails",
   nif: "508725607",
-  morada: "Avenida Egas Moniz - Zona Industrial Parque do Alto, Armazém 1 2135-232 Samora Correia]",
+  morada: "Avenida Egas Moniz - Zona Industrial Parque do Alto, Armazém 1 2135-232 Samora Correia",
   comarca: "Samora Correia",
   email: "geral@hnhitnails.com",
   emailPrivacidade: "privacidade@hnhitnails.com",
