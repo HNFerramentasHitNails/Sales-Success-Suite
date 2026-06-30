@@ -91,8 +91,10 @@ Deno.serve(async (req) => {
           name: c.name || "Consumidor Final", language_id: 1,
           address: c.address || "Desconhecido", city: c.city || "Desconhecido",
           zip_code: c.postal_code || "1000-001", country_id: 1,
-          email: c.email || "", maturity_date_id: 0, payment_method_id: 0,
-          salesman_id: 0, field_notes: "",
+          email: c.email || "",
+          maturity_date_id: 0, payment_method_id: 0, delivery_method_id: 0,
+          salesman_id: 0, payment_day: 0, discount: 0, credit_limit: 0,
+          field_notes: "",
         });
         custId = posInt(created?.customer_id);
         if (!custId) return json({ ok: false, error: "customer_failed", message: `Moloni nao devolveu customer_id: ${JSON.stringify(created).slice(0, 400)}` });
