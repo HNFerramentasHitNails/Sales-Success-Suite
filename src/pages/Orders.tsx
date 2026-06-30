@@ -51,6 +51,7 @@ export default function Orders() {
   const [wizardOpen, setWizardOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [editing, setEditing] = useState<Order | null>(null);
+  const [moloniBusy, setMoloniBusy] = useState<string | null>(null);
   const [stripeActive, setStripeActive] = useState(false);
   const [generatingFor, setGeneratingFor] = useState<string | null>(null);
   const [issuingFor, setIssuingFor] = useState<string | null>(null);
@@ -231,6 +232,18 @@ export default function Orders() {
   const openNew = () => { setEditing(null); setWizardOpen(true); };
   const openEdit = (o: Order) => { setEditing(o); setDialogOpen(true); };
 
+  const emitMoloni = async (o: Order) => {
+    if (!confirm(`Emitir a fatura da encomenda ${o.order_number} no Moloni (faturação certificada)?`)) return;
+    setMoloniBusy(o.id);
+    const { data, error } = await supabase.functions.invoke("moloni-issue-invoice", { body: { order_id: o.id } });
+    setMoloniBusy(null);
+    if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
+    const d = data as { ok?: boolean; message?: string; invoice_number?: string; pdf_url?: string; already?: boolean };
+    if (!d?.ok) { toast({ title: "Moloni recusou", description: d?.message ?? "Erro desconhecido", variant: "destructive" }); return; }
+    toast({ title: d.already ? "Já estava emitida" : `Fatura emitida: ${d.invoice_number ?? ""}`, description: d.pdf_url ? "PDF disponível." : undefined });
+    load();
+  };
+
   const remove = async (o: Order) => {
     // Cancelamentos são ESTADO (rastreáveis), não eliminação — preserva a numeração e a auditoria.
     if (o.status === "cancelada") { toast({ title: "Encomenda já está cancelada" }); return; }
@@ -371,6 +384,11 @@ export default function Orders() {
                               </a>
                             </Button>
                           </>
+                        )}
+                        {isAdmin && ["confirmada", "paga", "faturada"].includes(o.status) && (
+                        <Button size="sm" variant="ghost" title="Emitir no Moloni" disabled={moloniBusy === o.id} onClick={() => emitMoloni(o)}>
+                          {moloniBusy === o.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
+                        </Button>
                         )}
                         {isAdmin && o.status !== "cancelada" && (
                         <Button size="sm" variant="ghost" title="Cancelar encomenda" onClick={() => remove(o)}>
