@@ -24,6 +24,7 @@ import Invoices from "@/pages/Invoices";
 import Subscriptions from "@/pages/Subscriptions";
 import Integrations from "@/pages/Integrations";
 import Commissions from "@/pages/Commissions";
+import Reconciliation from "@/pages/Reconciliation";
 import Plan from "@/pages/Plan";
 import Pareto from "@/pages/Pareto";
 import ProductComparison from "@/pages/ProductComparison";
@@ -136,6 +137,7 @@ const App = () => (
                 <Route path="subscriptions" element={<Subscriptions />} />
                 <Route path="invoices" element={<Invoices />} />
                 <Route path="commissions" element={<RequireFeature feature="module_commissions"><Commissions /></RequireFeature>} />
+                <Route path="reconciliation" element={<Reconciliation />} />
                 <Route path="team" element={<Team />} />
                 <Route path="pareto" element={<Pareto />} />
                 <Route path="product-comparison" element={<ProductComparison />} />
