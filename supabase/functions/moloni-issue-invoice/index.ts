@@ -84,6 +84,13 @@ Deno.serve(async (req) => {
     let unitId: number | null = null;
     try { const units = await mPost("/measurementUnits/getAll/", token, { company_id: companyId }); unitId = posInt(Array.isArray(units) ? units[0]?.unit_id : null); } catch { /* */ }
 
+    // Categoria de produto (necessária para criar produtos no catálogo).
+    let categoryId = posInt(cfg.category_id);
+    if (!categoryId) {
+      try { const cats = await mPost("/productCategories/getAll/", token, { company_id: companyId, parent_id: 0 }); categoryId = posInt(Array.isArray(cats) ? cats[0]?.category_id : null); } catch { /* */ }
+      if (!categoryId) { try { const nc = await mPost("/productCategories/insert/", token, { company_id: companyId, parent_id: 0, name: "Vendas" }); categoryId = posInt(nc?.category_id); } catch { /* */ } }
+    }
+
     const c = (order as any).customers ?? {};
     // Resolve país do cliente: prefixo do NIF (ex.: PT/ES/FR) ou país do cliente; defeito PT.
     const rawVat = (c.vat_number && String(c.vat_number).trim()) || "";
@@ -125,18 +132,33 @@ Deno.serve(async (req) => {
     }
 
     const treat = order.vat_treatment as string | null;
-    let taxMissing: number | null = null;
-    const lines = ((order as any).order_lines ?? []).map((l: any) => {
+    const lines: Record<string, unknown>[] = [];
+    for (const l of ((order as any).order_lines ?? [])) {
       const rate = Number(l.tax_rate ?? 0);
-      const prod: Record<string, unknown> = { name: l.description || "Artigo", qty: Number(l.quantity ?? 1), price: Number(l.unit_price ?? 0), discount: Number(l.discount_percent ?? 0), order: 0 };
-      if (unitId) prod.unit_id = unitId;
+      const name = (l.description || "Artigo").toString().slice(0, 250);
+      const price = Number(l.unit_price ?? 0);
       const taxId = rate > 0 ? taxByRate.get(Math.round(rate * 100) / 100) : null;
-      if (rate > 0 && !taxId) taxMissing = rate;
-      if (taxId) prod.taxes = [{ tax_id: taxId, value: rate, order: 0, cumulative: 0 }];
-      else { prod.exemption_reason = EXEMPTION[treat ?? ""] ?? "M99"; prod.taxes = []; }
-      return prod;
-    });
-    if (taxMissing != null) return json({ ok: false, error: "no_tax", message: `O Moloni nao tem o imposto a ${taxMissing}% configurado nesta empresa. Cria a taxa de IVA no Moloni e tenta de novo.` });
+      if (rate > 0 && !taxId) return json({ ok: false, error: "no_tax", message: `O Moloni nao tem o imposto a ${rate}% configurado nesta empresa. Cria a taxa de IVA no Moloni e tenta de novo.` });
+      const taxPart: Record<string, unknown> = taxId
+        ? { taxes: [{ tax_id: taxId, value: rate, order: 0, cumulative: 0 }] }
+        : { exemption_reason: EXEMPTION[treat ?? ""] ?? "M99" };
+
+      // Catálogo: encontra ou cria o produto (Moloni exige product_id nas linhas).
+      const reference = ("SSS-" + name.replace(/[^A-Za-z0-9]+/g, "-")).slice(0, 28) + "-" + Math.round(price * 100);
+      let productId: number | null = null;
+      try { const f = await mPost("/products/getByReference/", token, { company_id: companyId, reference }); productId = posInt(Array.isArray(f) ? f[0]?.product_id : f?.product_id); } catch { /* */ }
+      if (!productId && categoryId && unitId) {
+        try {
+          const np = await mPost("/products/insert/", token, { company_id: companyId, category_id: categoryId, type: 1, name, reference, price, unit_id: unitId, has_stock: 0, ...taxPart });
+          productId = posInt(np?.product_id);
+        } catch (pe) { return json({ ok: false, error: "product_insert_failed", message: (pe as Error).message }); }
+      }
+
+      const prod: Record<string, unknown> = { name, qty: Number(l.quantity ?? 1), price, discount: Number(l.discount_percent ?? 0), order: lines.length, ...taxPart };
+      if (productId) prod.product_id = productId;
+      if (unitId) prod.unit_id = unitId;
+      lines.push(prod);
+    }
 
     const today = new Date().toISOString().slice(0, 10);
     const inserted = await mPost("/invoices/insert/", token, { company_id: companyId, date: today, expiration_date: today, document_set_id: documentSetId, customer_id: custId, your_reference: order.order_number ?? "", status: 1, products: lines });
