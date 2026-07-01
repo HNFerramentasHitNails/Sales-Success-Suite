@@ -5,7 +5,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/contexts/OrganizationContext";
 
-type Option = { id: string; label: string };
+type Option = { id: string; label: string; customer_id?: string | null };
 
 interface Props {
   customerId: string | null;
@@ -40,7 +40,7 @@ export default function EntityPicker({ customerId, orderId, onChange }: Props) {
       } else {
         let q = supabase
           .from("orders")
-          .select("id, order_number, total, order_date, customers(name)")
+          .select("id, order_number, total, order_date, customer_id, customers(name)")
           .eq("organization_id", activeOrg.id)
           .order("order_date", { ascending: false })
           .limit(20);
@@ -49,6 +49,7 @@ export default function EntityPicker({ customerId, orderId, onChange }: Props) {
         setOpts(
           (data ?? []).map((r: any) => ({
             id: r.id,
+            customer_id: r.customer_id ?? null,
             label: `${r.order_number} · ${r.customers?.name ?? "—"} · ${Number(r.total ?? 0).toLocaleString("pt-PT", { style: "currency", currency: "EUR" })}`,
           })),
         );
@@ -92,7 +93,7 @@ export default function EntityPicker({ customerId, orderId, onChange }: Props) {
                   onChange(
                     tab === "customer"
                       ? { customer_id: o.id, order_id: null }
-                      : { customer_id: null, order_id: o.id },
+                      : { customer_id: o.customer_id ?? null, order_id: o.id },
                   )
                 }
                 className={`w-full text-left px-3 py-2 text-sm hover:bg-muted ${

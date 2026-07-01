@@ -16,6 +16,13 @@ type Rma = RmaRow & {
   created_at: string;
   customers?: { id: string; name: string } | null;
   orders?: { id: string; order_number: string } | null;
+  credit_notes?: Array<{ credit_note_number: string; total: number; refund_method: string | null; refund_status: string | null }>;
+};
+
+const REFUND_STATUS_LABEL: Record<string, string> = {
+  done: "carteira creditada",
+  pending: "reembolso pendente (método original)",
+  none: "sem reembolso",
 };
 
 // Columns are "buckets" — the closed bucket aggregates the terminal statuses
@@ -60,7 +67,7 @@ export default function RmaPage() {
     setLoading(true);
     const { data, error } = await supabase
       .from("rma")
-      .select("id, reason, notes, status, resolution, customer_id, order_id, assigned_to, created_at, customers(id, name), orders(id, order_number)")
+      .select("id, reason, notes, status, resolution, customer_id, order_id, assigned_to, created_at, customers(id, name), orders(id, order_number), credit_notes(credit_note_number, total, refund_method, refund_status)")
       .eq("organization_id", activeOrg.id)
       .order("created_at", { ascending: false });
     if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
@@ -179,6 +186,12 @@ export default function RmaPage() {
                     {i.reason && <p className="text-xs">{i.reason}</p>}
                     {i.notes && <p className="text-xs text-muted-foreground line-clamp-2">{i.notes}</p>}
                     <div className="text-xs text-muted-foreground">Responsável: {memberName(i.assigned_to)}</div>
+                    {i.credit_notes && i.credit_notes.length > 0 && (
+                      <div className="rounded bg-muted/60 px-2 py-1 text-xs space-y-0.5">
+                        <div className="font-medium">{i.credit_notes[0].credit_note_number} · {Number(i.credit_notes[0].total ?? 0).toLocaleString("pt-PT", { style: "currency", currency: "EUR" })}</div>
+                        <div className="text-muted-foreground">{REFUND_STATUS_LABEL[i.credit_notes[0].refund_status ?? ""] ?? "—"}</div>
+                      </div>
+                    )}
 
                     {canWrite && (
                       <div className="space-y-2 pt-1">
