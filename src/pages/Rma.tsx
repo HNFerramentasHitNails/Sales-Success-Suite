@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { RotateCcw, Plus, Pencil, Trash2, Receipt, Loader2 } from "lucide-react";
+import { RotateCcw, Plus, Pencil, Trash2, Receipt, Loader2, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -16,7 +16,7 @@ type Rma = RmaRow & {
   created_at: string;
   customers?: { id: string; name: string } | null;
   orders?: { id: string; order_number: string } | null;
-  credit_notes?: Array<{ credit_note_number: string; total: number; refund_method: string | null; refund_status: string | null }>;
+  credit_notes?: Array<{ id: string; credit_note_number: string; total: number; refund_method: string | null; refund_status: string | null }>;
 };
 
 const REFUND_STATUS_LABEL: Record<string, string> = {
@@ -60,6 +60,7 @@ export default function RmaPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<RmaRow | null>(null);
   const [regularizing, setRegularizing] = useState<string | null>(null);
+  const [refunding, setRefunding] = useState<string | null>(null);
   const isAdmin = role === "owner" || role === "admin";
 
   const load = useCallback(async () => {
@@ -67,7 +68,7 @@ export default function RmaPage() {
     setLoading(true);
     const { data, error } = await supabase
       .from("rma")
-      .select("id, reason, notes, status, resolution, customer_id, order_id, assigned_to, created_at, customers(id, name), orders(id, order_number), credit_notes(credit_note_number, total, refund_method, refund_status)")
+      .select("id, reason, notes, status, resolution, customer_id, order_id, assigned_to, created_at, customers(id, name), orders(id, order_number), credit_notes(id, credit_note_number, total, refund_method, refund_status)")
       .eq("organization_id", activeOrg.id)
       .order("created_at", { ascending: false });
     if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
@@ -137,6 +138,19 @@ export default function RmaPage() {
     load();
   }
 
+  async function refundStripe(creditNoteId: string) {
+    if (!confirm("Reembolsar este valor no Stripe (cartão original do cliente)?")) return;
+    setRefunding(creditNoteId);
+    const { data, error } = await supabase.functions.invoke("stripe-refund-credit-note", { body: { credit_note_id: creditNoteId } });
+    setRefunding(null);
+    if (error || data?.error) {
+      toast({ title: "Erro no reembolso", description: data?.message || error?.message || data?.error, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Reembolso processado", description: "O valor foi devolvido ao cliente." });
+    load();
+  }
+
   async function remove(i: Rma) {
     if (!confirm("Eliminar esta devolução?")) return;
     const { error } = await supabase.from("rma").delete().eq("id", i.id);
@@ -187,9 +201,15 @@ export default function RmaPage() {
                     {i.notes && <p className="text-xs text-muted-foreground line-clamp-2">{i.notes}</p>}
                     <div className="text-xs text-muted-foreground">Responsável: {memberName(i.assigned_to)}</div>
                     {i.credit_notes && i.credit_notes.length > 0 && (
-                      <div className="rounded bg-muted/60 px-2 py-1 text-xs space-y-0.5">
+                      <div className="rounded bg-muted/60 px-2 py-1 text-xs space-y-1">
                         <div className="font-medium">{i.credit_notes[0].credit_note_number} · {Number(i.credit_notes[0].total ?? 0).toLocaleString("pt-PT", { style: "currency", currency: "EUR" })}</div>
                         <div className="text-muted-foreground">{REFUND_STATUS_LABEL[i.credit_notes[0].refund_status ?? ""] ?? "—"}</div>
+                        {isAdmin && i.credit_notes[0].refund_method === "original" && i.credit_notes[0].refund_status === "pending" && (
+                          <Button size="sm" variant="outline" className="w-full h-6 text-xs" disabled={refunding === i.credit_notes[0].id} onClick={() => refundStripe(i.credit_notes![0].id)}>
+                            {refunding === i.credit_notes[0].id ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <CreditCard className="h-3 w-3 mr-1" />}
+                            Reembolsar no Stripe
+                          </Button>
+                        )}
                       </div>
                     )}
 
