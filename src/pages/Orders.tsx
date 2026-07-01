@@ -21,6 +21,7 @@ type OrderStatus = Database["public"]["Enums"]["order_status"];
 type Row = Order & {
   customers: { name: string } | null;
   invoices: { id: string; status: string; invoice_number: string | null; pdf_url: string | null }[];
+  credit_notes: { id: string; credit_note_number: string; refund_status: string | null }[];
 };
 
 const STATUSES: { v: OrderStatus; l: string; cls: string }[] = [
@@ -82,7 +83,7 @@ export default function Orders() {
     if (!activeOrg) return;
     setLoading(true);
     let q = supabase.from("orders")
-      .select("*, customers(name), invoices(id, status, invoice_number, pdf_url)", { count: "exact" })
+      .select("*, customers(name), invoices(id, status, invoice_number, pdf_url), credit_notes(id, credit_note_number, refund_status)", { count: "exact" })
       .eq("organization_id", activeOrg.id)
       .order("order_date", { ascending: false })
       .order("order_number", { ascending: false });
@@ -348,19 +349,23 @@ export default function Orders() {
               {!loading && rows.length === 0 && <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Sem encomendas.</TableCell></TableRow>}
               {!loading && rows.map((o) => {
                 const st = STATUSES.find((s) => s.v === o.status);
-                const canPay = stripeActive && canWrite && o.status === "confirmada";
+                const refunded = (o.credit_notes ?? []).length > 0;
+                const canPay = stripeActive && canWrite && o.status === "confirmada" && !refunded;
                 const activeInvoice = (o.invoices ?? []).find((i) => i.status !== "error");
                 const canInvoice = canWrite
                   && (o.status === "confirmada" || o.status === "paga")
-                  && !activeInvoice;
+                  && !activeInvoice
+                  && !refunded;
                 const walletBal = o.customer_id ? (walletByCustomer[o.customer_id] ?? 0) : 0;
                 const walletApplied = Number((o as any).wallet_balance_applied ?? 0);
                 const canPayWallet = canWrite
                   && !["paga", "faturada", "cancelada"].includes(o.status)
                   && walletApplied <= 0
-                  && walletBal > 0;
+                  && walletBal > 0
+                  && !refunded;
                 const canRevertWallet = canWrite && walletApplied > 0
-                  && !["faturada", "cancelada"].includes(o.status);
+                  && !["faturada", "cancelada"].includes(o.status)
+                  && !refunded;
                 return (
                   <TableRow key={o.id} className="cursor-pointer hover:bg-muted/40" onClick={() => canWrite && openEdit(o)}>
                     <TableCell className="font-medium">{o.order_number}</TableCell>
@@ -370,6 +375,12 @@ export default function Orders() {
                       <div className="flex flex-col gap-1">
                         <div className="flex items-center gap-1">
                           <Badge className={st?.cls} variant="secondary">{st?.l ?? o.status}</Badge>
+                          {refunded && (
+                            <Badge variant="secondary" className="bg-rose-500/15 text-rose-700 dark:text-rose-300 gap-1"
+                              title={`Nota de crédito emitida: ${o.credit_notes.map((c) => c.credit_note_number).join(", ")}`}>
+                              <RotateCcw className="h-3 w-3" /> Reembolsada
+                            </Badge>
+                          )}
                           {Number((o as any).wallet_balance_applied ?? 0) > 0 && (
                             <Badge variant="secondary" className="bg-amber-500/15 text-amber-700 dark:text-amber-300 gap-1"
                               title={`Carteira aplicada: ${fmtMoney(Number((o as any).wallet_balance_applied), o.currency || currency)}`}>
