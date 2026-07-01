@@ -144,7 +144,12 @@ export default function RmaPage() {
     const { data, error } = await supabase.functions.invoke("stripe-refund-credit-note", { body: { credit_note_id: creditNoteId } });
     setRefunding(null);
     if (error || data?.error) {
-      toast({ title: "Erro no reembolso", description: data?.message || error?.message || data?.error, variant: "destructive" });
+      let detail = data?.message || data?.error || error?.message;
+      const ctx = (error as any)?.context;
+      if (ctx?.json) {
+        try { const body = await ctx.json(); detail = body?.message || body?.error || detail; } catch { /* corpo não é JSON */ }
+      }
+      toast({ title: "Erro no reembolso", description: detail, variant: "destructive" });
       return;
     }
     toast({ title: "Reembolso processado", description: "O valor foi devolvido ao cliente." });
