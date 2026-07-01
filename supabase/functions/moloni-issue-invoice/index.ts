@@ -34,6 +34,12 @@ async function grant(c: Record<string, string>): Promise<string> {
 }
 function posInt(v: unknown): number | null { if (v === null || v === undefined || v === "") return null; const n = Math.trunc(Number(v)); return Number.isFinite(n) && n > 0 ? n : null; }
 const EXEMPTION: Record<string, string> = { reverse_charge: "M16", export: "M05", exempt: "M99", oss_destination: "M30" };
+// Normaliza o código postal para o formato NNNN-NNN exigido pelo Moloni (aceita espaço/traço/nada como separador).
+function zip(v: unknown, fallback = "1000-001"): string {
+  const s = String(v ?? "").trim();
+  const m = s.match(/^(\d{4})[\s-]?(\d{3})$/);
+  return m ? `${m[1]}-${m[2]}` : (s || fallback);
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
@@ -132,7 +138,7 @@ Deno.serve(async (req) => {
           company_id: companyId, vat, number: vat,
           name: c.name || "Consumidor Final", language_id: 1,
           address: c.address || "Desconhecido", city: c.city || "Desconhecido",
-          zip_code: c.postal_code || "1000-001", country_id: countryId,
+          zip_code: zip(c.postal_code), country_id: countryId,
           email: c.email || "",
           maturity_date_id: 0, payment_method_id: 0, delivery_method_id: 0,
           salesman_id: 0, payment_day: 0, discount: 0, credit_limit: 0,
@@ -180,14 +186,15 @@ Deno.serve(async (req) => {
     if ((order as any).delivery_method === "carrier") {
       const dtv = (order as any).delivery_datetime;
       const dt = dtv ? new Date(dtv) : new Date();
+      transport.delivery_method_id = 1; // 1 = transportadora (0 = frota/levantamento própria)
       transport.delivery_datetime = dt.toISOString().slice(0, 19).replace("T", " ");
       transport.delivery_departure_address = (org as any)?.warehouse_address || (org as any)?.legal_address || "Desconhecido";
       transport.delivery_departure_city = (org as any)?.warehouse_city || "";
-      transport.delivery_departure_zip_code = (org as any)?.warehouse_postal_code || "";
+      transport.delivery_departure_zip_code = zip((org as any)?.warehouse_postal_code);
       transport.delivery_departure_country = 1;
       transport.delivery_destination_address = (order as any).ship_to_address || c.address || "Desconhecido";
       transport.delivery_destination_city = (order as any).ship_to_city || c.city || "";
-      transport.delivery_destination_zip_code = (order as any).ship_to_postal_code || c.postal_code || "";
+      transport.delivery_destination_zip_code = zip((order as any).ship_to_postal_code || c.postal_code);
       transport.delivery_destination_country = countryId;
     }
 
