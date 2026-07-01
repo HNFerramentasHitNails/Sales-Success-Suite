@@ -42,8 +42,8 @@ Deno.serve(async (req) => {
   const admin = adminClient();
 
   try {
-    const { data: cn, error: cnErr } = await admin.from("credit_notes").select("*").eq("id", creditNoteId).maybeSingle();
-    if (!cn) return json(404, { error: "credit_note_not_found", message: `id recebido: "${creditNoteId}"${cnErr ? ` · erro: ${cnErr.message}` : ""}` });
+    const { data: cn } = await admin.from("credit_notes").select("*").eq("id", creditNoteId).maybeSingle();
+    if (!cn) return json(404, { error: "credit_note_not_found" });
     if (cn.refund_method !== "original") return json(400, { error: "not_original_method" });
     if (cn.refund_status === "done") return json(200, { ok: true, already: true });
     if (cn.refund_status !== "pending") return json(400, { error: "invalid_refund_status" });
