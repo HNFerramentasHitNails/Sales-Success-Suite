@@ -6,7 +6,7 @@ const ROWS = [
   { sub: "Stripe", fim: "Pagamentos e faturação", loc: "UE / EUA", gar: "SCC / DPF [confirmar]" },
   { sub: "Resend", fim: "Envio de email", loc: "UE / EUA", gar: "SCC / DPF [confirmar]" },
   { sub: "[Fornecedor de IA: DeepSeek / OpenAI / Anthropic]", fim: "Funcionalidades de IA", loc: "[China / EUA — conforme selecionado]", gar: "[SCC / DPF / declaração do cliente]" },
-  { sub: "Evolution API / WhatsApp (Meta)", fim: "Mensagens", loc: "[a confirmar]", gar: "[a confirmar]" },
+  { sub: "Evolution API / WhatsApp (Meta)", fim: "Mensagens", loc: "Portugal", gar: "N/A (dentro do EEE)" },
   { sub: "Outscraper", fim: "Captação de leads", loc: "EUA", gar: "[SCC — a confirmar]" },
 ];
 
