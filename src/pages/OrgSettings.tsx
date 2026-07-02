@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import type { Database } from "@/integrations/supabase/types";
 import CountrySelect from "@/components/CountrySelect";
+import { ColorPickerField } from "@/components/settings/ColorPickerField";
 
 type InvoiceMode = Database["public"]["Enums"]["invoice_mode"];
 
@@ -249,11 +250,8 @@ export default function OrgSettings() {
               <Input id="logo" value={logoUrl} onChange={(e) => setLogoUrl(e.target.value)} disabled={!isAdmin} placeholder="https://..." />
             </div>
             <div>
-              <Label htmlFor="color">Cor primária (HSL, ex.: 220 50% 23%)</Label>
-              <div className="flex gap-2 items-center">
-                <Input id="color" value={primaryColor} onChange={(e) => setPrimaryColor(e.target.value)} disabled={!isAdmin} />
-                <div className="h-9 w-9 rounded border" style={{ background: `hsl(${primaryColor})` }} />
-              </div>
+              <Label htmlFor="color">Cor primária</Label>
+              <ColorPickerField value={primaryColor} onChange={setPrimaryColor} disabled={!isAdmin} />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
