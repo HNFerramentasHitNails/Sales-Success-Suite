@@ -39,12 +39,13 @@ function emptyLine(): LineDraft {
 }
 
 export default function OrderFormDialog({
-  open, onOpenChange, order, onSaved,
+  open, onOpenChange, order, onSaved, forceShipTo,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   order: Order | null;
   onSaved: () => void;
+  forceShipTo?: boolean;
 }) {
   const { activeOrg } = useOrganization();
   const { user } = useAuth();
@@ -148,7 +149,7 @@ export default function OrderFormDialog({
       setDeliveryMethod(((order as any).delivery_method as "pickup" | "carrier") ?? "carrier");
       setDeliveryCarrier((order as any).delivery_carrier ?? "");
       const hasShipTo = !!(order as any).ship_to_country || !!(order as any).ship_to_address;
-      setShipToOn(hasShipTo);
+      setShipToOn(hasShipTo || !!forceShipTo);
       setShipTo({
         name: (order as any).ship_to_name ?? "",
         address: (order as any).ship_to_address ?? "",

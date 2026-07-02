@@ -54,6 +54,7 @@ export default function Orders() {
   const [wizardOpen, setWizardOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [editing, setEditing] = useState<Order | null>(null);
+  const [forceShipTo, setForceShipTo] = useState(false);
   const [moloniBusy, setMoloniBusy] = useState<string | null>(null);
   const [walletDialog, setWalletDialog] = useState<{ order: Row; max: number; balance: number; outstanding: number } | null>(null);
   const [walletAmount, setWalletAmount] = useState("");
@@ -278,7 +279,7 @@ export default function Orders() {
   const totalPages = Math.max(1, Math.ceil(count / PAGE_SIZE));
 
   const openNew = () => { setEditing(null); setWizardOpen(true); };
-  const openEdit = (o: Order) => { setEditing(o); setDialogOpen(true); };
+  const openEdit = (o: Order) => { setEditing(o); setForceShipTo(false); setDialogOpen(true); };
 
   const emitMoloni = async (o: Order) => {
     if (!confirm(`Emitir a fatura da encomenda ${o.order_number} no Moloni (faturação certificada)?`)) return;
@@ -286,8 +287,12 @@ export default function Orders() {
     const { data, error } = await supabase.functions.invoke("moloni-issue-invoice", { body: { order_id: o.id } });
     setMoloniBusy(null);
     if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
-    const d = data as { ok?: boolean; message?: string; invoice_number?: string; pdf_url?: string; already?: boolean };
-    if (!d?.ok) { toast({ title: "Moloni recusou", description: d?.message ?? "Erro desconhecido", variant: "destructive" }); return; }
+    const d = data as { ok?: boolean; error?: string; message?: string; invoice_number?: string; pdf_url?: string; already?: boolean };
+    if (!d?.ok) {
+      toast({ title: "Moloni recusou", description: d?.message ?? "Erro desconhecido", variant: "destructive" });
+      if (d?.error === "missing_shipping_address") { setEditing(o); setForceShipTo(true); setDialogOpen(true); }
+      return;
+    }
     toast({ title: d.already ? "Já estava emitida" : `Fatura emitida: ${d.invoice_number ?? ""}`, description: d.pdf_url ? "PDF disponível." : undefined });
     load();
   };
@@ -484,6 +489,7 @@ export default function Orders() {
         onOpenChange={setDialogOpen}
         order={editing}
         onSaved={load}
+        forceShipTo={forceShipTo}
       />
       <OrderWizardDialog
         open={wizardOpen}

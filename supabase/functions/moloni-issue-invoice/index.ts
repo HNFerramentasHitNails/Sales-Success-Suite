@@ -184,6 +184,17 @@ Deno.serve(async (req) => {
     // Dados de transporte (a fatura serve de documento de transporte AT quando há envio por transportadora).
     const transport: Record<string, unknown> = {};
     if ((order as any).delivery_method === "carrier") {
+      const destCity = (order as any).ship_to_city || c.city || "";
+      const destAddress = (order as any).ship_to_address || c.address || "";
+      const missing: string[] = [];
+      if (!destAddress) missing.push("morada");
+      if (!destCity) missing.push("cidade");
+      if (missing.length) {
+        return json({
+          ok: false, error: "missing_shipping_address",
+          message: `Falta a ${missing.join(" e a ")} de entrega. Edita a encomenda em "Entregar noutra morada" ou completa a morada do cliente antes de emitir a fatura (obrigatório para o documento de transporte).`,
+        });
+      }
       const dtv = (order as any).delivery_datetime;
       const dt = dtv ? new Date(dtv) : new Date();
       transport.delivery_method_id = 1; // 1 = transportadora (0 = frota/levantamento própria)
@@ -192,8 +203,8 @@ Deno.serve(async (req) => {
       transport.delivery_departure_city = (org as any)?.warehouse_city || "";
       transport.delivery_departure_zip_code = zip((org as any)?.warehouse_postal_code);
       transport.delivery_departure_country = 1;
-      transport.delivery_destination_address = (order as any).ship_to_address || c.address || "Desconhecido";
-      transport.delivery_destination_city = (order as any).ship_to_city || c.city || "";
+      transport.delivery_destination_address = destAddress;
+      transport.delivery_destination_city = destCity;
       transport.delivery_destination_zip_code = zip((order as any).ship_to_postal_code || c.postal_code);
       transport.delivery_destination_country = countryId;
     }
@@ -201,7 +212,16 @@ Deno.serve(async (req) => {
     const today = new Date().toISOString().slice(0, 10);
     const inserted = await mPost("/invoices/insert/", token, { company_id: companyId, date: today, expiration_date: today, document_set_id: documentSetId, customer_id: custId, your_reference: order.order_number ?? "", status: 1, ...transport, products: lines });
     const documentId = posInt(inserted?.document_id);
-    if (!documentId) return json({ ok: false, error: "insert_failed", message: `Resposta sem document_id: ${JSON.stringify(inserted).slice(0, 300)}` });
+    if (!documentId) {
+      // Moloni devolve um array de strings "<código> <campo> ..." quando a validação falha.
+      const fields = Array.isArray(inserted)
+        ? [...new Set(inserted.map((s: unknown) => String(s).split(" ")[1]).filter(Boolean))]
+        : [];
+      const message = fields.length
+        ? `Moloni recusou: campos em falta ou inválidos — ${fields.join(", ")}.`
+        : `Resposta sem document_id: ${JSON.stringify(inserted).slice(0, 300)}`;
+      return json({ ok: false, error: "insert_failed", message });
+    }
 
     let pdfUrl: string | null = null;
     try { const pdf = await mPost("/documents/getPDFLink/", token, { company_id: companyId, document_id: documentId }); pdfUrl = pdf?.url ?? null; } catch { /* */ }
