@@ -13,6 +13,7 @@ import { toast } from "@/hooks/use-toast";
 import type { Database } from "@/integrations/supabase/types";
 import CountrySelect from "@/components/CountrySelect";
 import { ColorPickerField } from "@/components/settings/ColorPickerField";
+import WarehousesManager from "@/components/settings/WarehousesManager";
 
 type InvoiceMode = Database["public"]["Enums"]["invoice_mode"];
 
@@ -64,11 +65,6 @@ export default function OrgSettings() {
   const [returnPolicy, setReturnPolicy] = useState("");
   const [withdrawalDays, setWithdrawalDays] = useState(14);
   const [rmaThreshold, setRmaThreshold] = useState("");
-  const [whName, setWhName] = useState("");
-  const [whAddress, setWhAddress] = useState("");
-  const [whCity, setWhCity] = useState("");
-  const [whPostal, setWhPostal] = useState("");
-  const [whCountry, setWhCountry] = useState("");
   const [legalBusy, setLegalBusy] = useState(false);
 
   // ---- Privacidade de colaboradores ----
@@ -102,11 +98,6 @@ export default function OrgSettings() {
       setReturnPolicy(o.return_policy ?? "");
       setWithdrawalDays(Number(o.withdrawal_days ?? 14));
       setRmaThreshold(o.rma_dual_approval_threshold != null ? String(o.rma_dual_approval_threshold) : "");
-      setWhName(o.warehouse_name ?? "");
-      setWhAddress(o.warehouse_address ?? "");
-      setWhCity(o.warehouse_city ?? "");
-      setWhPostal(o.warehouse_postal_code ?? "");
-      setWhCountry(o.warehouse_country ?? "");
       setRankingsHideNames(!!o.rankings_hide_names);
     }
   }, [activeOrg]);
@@ -139,11 +130,6 @@ export default function OrgSettings() {
         return_policy: returnPolicy.trim() || null,
         withdrawal_days: Number.isFinite(withdrawalDays) ? withdrawalDays : 14,
         rma_dual_approval_threshold: rmaThreshold.trim() === "" ? null : Number(rmaThreshold),
-        warehouse_name: whName.trim() || null,
-        warehouse_address: whAddress.trim() || null,
-        warehouse_city: whCity.trim() || null,
-        warehouse_postal_code: whPostal.trim() || null,
-        warehouse_country: whCountry.trim() || null,
       } as never)
       .eq("id", activeOrg!.id);
     setLegalBusy(false);
@@ -355,40 +341,22 @@ export default function OrgSettings() {
               </div>
             </div>
 
-            {/* Morada de armazém (origem de carga para envios por transportadora) */}
-            <div className="pt-2 border-t">
-              <p className="text-sm font-medium mb-2">Morada de armazém (origem de carga)</p>
-              <div className="grid md:grid-cols-2 gap-3">
-                <div className="md:col-span-2">
-                  <Label htmlFor="wh_name">Nome do armazém</Label>
-                  <Input id="wh_name" value={whName} onChange={(e) => setWhName(e.target.value)} disabled={!isAdmin} placeholder="Ex.: Armazém Central" />
-                </div>
-                <div className="md:col-span-2">
-                  <Label htmlFor="wh_address">Morada</Label>
-                  <Input id="wh_address" value={whAddress} onChange={(e) => setWhAddress(e.target.value)} disabled={!isAdmin} />
-                </div>
-                <div>
-                  <Label htmlFor="wh_city">Cidade</Label>
-                  <Input id="wh_city" value={whCity} onChange={(e) => setWhCity(e.target.value)} disabled={!isAdmin} />
-                </div>
-                <div>
-                  <Label htmlFor="wh_postal">Código Postal</Label>
-                  <Input id="wh_postal" value={whPostal} onChange={(e) => setWhPostal(e.target.value)} disabled={!isAdmin} placeholder="0000-000" />
-                </div>
-                <div>
-                  <Label htmlFor="wh_country">País (ISO)</Label>
-                  <Input id="wh_country" value={whCountry} onChange={(e) => setWhCountry(e.target.value)} disabled={!isAdmin} placeholder="PT" maxLength={2} />
-                </div>
-              </div>
-              <p className="text-[11px] text-muted-foreground mt-1">Usada como morada de carga nos dados de transporte da fatura (envios por transportadora).</p>
-            </div>
-
             {isAdmin ? (
               <Button type="submit" disabled={legalBusy}>Guardar</Button>
             ) : (
               <p className="text-sm text-muted-foreground">Apenas administradores podem editar.</p>
             )}
           </form>
+        </CardContent>
+      </Card>
+
+      {/* ============ Armazéns (origem de carga) ============ */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Armazéns</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <WarehousesManager orgId={activeOrg.id} isAdmin={isAdmin} />
         </CardContent>
       </Card>
 

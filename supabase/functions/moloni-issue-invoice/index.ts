@@ -59,9 +59,18 @@ Deno.serve(async (req) => {
     const { data: order } = await admin.from("orders").select("*, customers(*), order_lines(*)").eq("id", orderId).maybeSingle();
     if (!order) return json({ ok: false, error: "order_not_found" }, 404);
     const orgId = order.organization_id as string;
-    const { data: org } = await admin.from("organizations")
-      .select("warehouse_address, warehouse_city, warehouse_postal_code, warehouse_country, legal_address")
-      .eq("id", orgId).maybeSingle();
+    const { data: org } = await admin.from("organizations").select("legal_address").eq("id", orgId).maybeSingle();
+
+    // Armazém de origem: o escolhido na encomenda, senão o predefinido da organização.
+    let warehouse: { address: string | null; city: string | null; postal_code: string | null } | null = null;
+    if ((order as any).warehouse_id) {
+      const { data: wh } = await admin.from("warehouses").select("address, city, postal_code").eq("id", (order as any).warehouse_id).maybeSingle();
+      warehouse = wh;
+    }
+    if (!warehouse) {
+      const { data: wh } = await admin.from("warehouses").select("address, city, postal_code").eq("organization_id", orgId).eq("is_default", true).maybeSingle();
+      warehouse = wh;
+    }
 
     const { data: member } = await admin.from("organization_members").select("role").eq("organization_id", orgId).eq("user_id", userId).eq("status", "active").maybeSingle();
     if (!member || !["owner", "admin"].includes(member.role)) return json({ ok: false, error: "forbidden" }, 403);
@@ -199,9 +208,9 @@ Deno.serve(async (req) => {
       const dt = dtv ? new Date(dtv) : new Date();
       transport.delivery_method_id = 1; // 1 = transportadora (0 = frota/levantamento própria)
       transport.delivery_datetime = dt.toISOString().slice(0, 19).replace("T", " ");
-      transport.delivery_departure_address = (org as any)?.warehouse_address || (org as any)?.legal_address || "Desconhecido";
-      transport.delivery_departure_city = (org as any)?.warehouse_city || "";
-      transport.delivery_departure_zip_code = zip((org as any)?.warehouse_postal_code);
+      transport.delivery_departure_address = warehouse?.address || (org as any)?.legal_address || "Desconhecido";
+      transport.delivery_departure_city = warehouse?.city || "";
+      transport.delivery_departure_zip_code = zip(warehouse?.postal_code);
       transport.delivery_departure_country = 1;
       transport.delivery_destination_address = destAddress;
       transport.delivery_destination_city = destCity;

@@ -54,6 +54,8 @@ export default function OrderFormDialog({
   const [recalcBusy, setRecalcBusy] = useState(false);
   const [customers, setCustomers] = useState<{ id: string; name: string; vat_number?: string | null; vat_valid?: boolean | null; country?: string | null }[]>([]);
   const [products, setProducts] = useState<{ id: string; name: string; unit_price: number; tax_rate: number; is_tax_exempt: boolean }[]>([]);
+  const [warehouses, setWarehouses] = useState<{ id: string; name: string; is_default: boolean }[]>([]);
+  const [warehouseId, setWarehouseId] = useState<string>("");
   const [customerId, setCustomerId] = useState<string>("");
   const [orderDate, setOrderDate] = useState<string>(new Date().toISOString().slice(0, 10));
   const [notes, setNotes] = useState("");
@@ -108,14 +110,16 @@ export default function OrderFormDialog({
 
   const loadOptions = useCallback(async () => {
     if (!activeOrg) return;
-    const [c, p] = await Promise.all([
+    const [c, p, w] = await Promise.all([
       supabase.from("customers").select("id, name, vat_number, vat_valid, country, shipping_same_as_billing, shipping_address, shipping_city, shipping_postal_code, shipping_country").eq("organization_id", activeOrg.id).order("name"),
       supabase.from("products").select("id, name, unit_price, tax_rate, is_tax_exempt").eq("organization_id", activeOrg.id).eq("is_active", true).order("name"),
+      supabase.from("warehouses").select("id, name, is_default").eq("organization_id", activeOrg.id).eq("is_active", true).order("name"),
     ]);
     setCustomers((c.data ?? []) as any);
     setProducts((p.data ?? []).map((x: { id: string; name: string; unit_price: number | string; tax_rate: number | string; is_tax_exempt: boolean }) => ({
       id: x.id, name: x.name, unit_price: Number(x.unit_price), tax_rate: Number(x.tax_rate), is_tax_exempt: x.is_tax_exempt,
     })));
+    setWarehouses((w.data ?? []) as any);
   }, [activeOrg]);
 
   useEffect(() => { if (open) loadOptions(); }, [open, loadOptions]);
@@ -148,6 +152,7 @@ export default function OrderFormDialog({
       setServerOrder(order);
       setDeliveryMethod(((order as any).delivery_method as "pickup" | "carrier") ?? "carrier");
       setDeliveryCarrier((order as any).delivery_carrier ?? "");
+      setWarehouseId((order as any).warehouse_id ?? "");
       const hasShipTo = !!(order as any).ship_to_country || !!(order as any).ship_to_address;
       setShipToOn(hasShipTo || !!forceShipTo);
       setShipTo({
@@ -174,10 +179,18 @@ export default function OrderFormDialog({
       setNotes(""); setStatus("rascunho"); setLines([emptyLine()]);
       setServerOrder(null);
       setDeliveryMethod("carrier"); setDeliveryCarrier("");
+      setWarehouseId("");
       setShipToOn(false);
       setShipTo({ name: "", address: "", city: "", postal_code: "", country: "" });
     }
   }, [open, order]);
+
+  // Nova encomenda: pré-seleciona o armazém predefinido assim que a lista carregar.
+  useEffect(() => {
+    if (!open || order || warehouseId) return;
+    const def = warehouses.find((w) => w.is_default);
+    if (def) setWarehouseId(def.id);
+  }, [open, order, warehouses, warehouseId]);
 
   // Pré-preencher morada de entrega a partir do cliente se este tiver
   // shipping_same_as_billing=false e país definido. Só para novas encomendas
@@ -290,6 +303,7 @@ export default function OrderFormDialog({
         created_by: user.id,
         delivery_method: deliveryMethod,
         delivery_carrier: deliveryMethod === "carrier" ? (deliveryCarrier.trim() || null) : null,
+        warehouse_id: warehouseId || null,
         ...shipFields,
       }).select("id").single();
       if (insErr) { setBusy(false); toast({ title: "Erro", description: insErr.message, variant: "destructive" }); return; }
@@ -300,6 +314,7 @@ export default function OrderFormDialog({
         notes: notes.trim() || null,
         delivery_method: deliveryMethod,
         delivery_carrier: deliveryMethod === "carrier" ? (deliveryCarrier.trim() || null) : null,
+        warehouse_id: warehouseId || null,
         ...shipFields,
       }).eq("id", order.id);
       if (upErr) { setBusy(false); toast({ title: "Erro", description: upErr.message, variant: "destructive" }); return; }
@@ -381,6 +396,19 @@ export default function OrderFormDialog({
               <div>
                 <Label className="text-sm">Transportadora</Label>
                 <Input value={deliveryCarrier} onChange={(e) => setDeliveryCarrier(e.target.value)} maxLength={120} placeholder="Ex.: CTT, DPD…" />
+              </div>
+            )}
+            {warehouses.length > 0 && (
+              <div>
+                <Label className="text-sm">Armazém de origem</Label>
+                <Select value={warehouseId} onValueChange={setWarehouseId}>
+                  <SelectTrigger><SelectValue placeholder="Predefinido" /></SelectTrigger>
+                  <SelectContent>
+                    {warehouses.map((w) => (
+                      <SelectItem key={w.id} value={w.id}>{w.name}{w.is_default ? " (predefinido)" : ""}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             )}
           </div>

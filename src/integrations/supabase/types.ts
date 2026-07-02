@@ -2023,6 +2023,7 @@ export type Database = {
           vat_exemption_reason: string | null
           vat_treatment: string
           wallet_balance_applied: number
+          warehouse_id: string | null
         }
         Insert: {
           assigned_member_id?: string | null
@@ -2053,6 +2054,7 @@ export type Database = {
           vat_exemption_reason?: string | null
           vat_treatment?: string
           wallet_balance_applied?: number
+          warehouse_id?: string | null
         }
         Update: {
           assigned_member_id?: string | null
@@ -2083,6 +2085,7 @@ export type Database = {
           vat_exemption_reason?: string | null
           vat_treatment?: string
           wallet_balance_applied?: number
+          warehouse_id?: string | null
         }
         Relationships: [
           {
@@ -2104,6 +2107,13 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "warehouses"
             referencedColumns: ["id"]
           },
         ]
@@ -4427,6 +4437,56 @@ export type Database = {
           },
         ]
       }
+      warehouses: {
+        Row: {
+          address: string | null
+          city: string | null
+          country: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          is_default: boolean
+          name: string
+          organization_id: string
+          postal_code: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          name: string
+          organization_id: string
+          postal_code?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          name?: string
+          organization_id?: string
+          postal_code?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "warehouses_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       webhook_endpoints: {
         Row: {
           created_at: string
@@ -4878,6 +4938,10 @@ export type Database = {
           errors: number
           processed: number
         }[]
+      }
+      set_default_warehouse: {
+        Args: { _warehouse_id: string }
+        Returns: undefined
       }
       set_ai_settings: {
         Args: {
