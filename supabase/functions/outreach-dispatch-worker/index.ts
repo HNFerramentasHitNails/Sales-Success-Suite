@@ -226,10 +226,20 @@ async function processOrg(admin: any, orgId: string, resendKey: string, fallback
         await admin.from("outreach_template_variations").update({ sends: (variation.sends ?? 0) + 1 }).eq("id", variation.id);
         if (lead.status === "novo") await admin.from("outreach_leads").update({ status: "contactado" }).eq("id", lead.id);
         if (domain) await admin.from("outreach_email_domains").update({ sent_today: (domain.sent_today ?? 0) + 1 }).eq("id", domain.id);
+        if (camp.last_error) await admin.from("outreach_campaigns").update({ last_error: null, last_error_at: null }).eq("id", camp.id);
         await advance({ last_channel: "email" });
       } else {
         emailState.consecutive_failures++;
-        if (emailState.consecutive_failures >= CIRCUIT_THRESHOLD) { emailState.status = "circuit_open"; await admin.from("outreach_campaigns").update({ status: "paused" }).eq("organization_id", orgId).eq("status", "running"); }
+        if (emailState.consecutive_failures >= CIRCUIT_THRESHOLD) {
+          emailState.status = "circuit_open";
+          await admin.from("outreach_campaigns")
+            .update({
+              status: "paused",
+              last_error: `Pausada automaticamente: falhas repetidas a enviar por email (${r.error ?? "erro desconhecido"}).`,
+              last_error_at: nowIso,
+            })
+            .eq("organization_id", orgId).eq("status", "running");
+        }
         await retryLater(1);
       }
       await admin.from("outreach_channel_state").update({ daily_sent: emailState.daily_sent, weekly_sent: emailState.weekly_sent, consecutive_failures: emailState.consecutive_failures, status: emailState.status }).eq("id", emailState.id);
@@ -262,10 +272,20 @@ async function processOrg(admin: any, orgId: string, resendKey: string, fallback
         await admin.from("outreach_whatsapp_instances").update({ daily_sent: waInst.daily_sent }).eq("id", waInst.id);
         await admin.from("outreach_template_variations").update({ sends: (variation.sends ?? 0) + 1 }).eq("id", variation.id);
         if (lead.status === "novo") await admin.from("outreach_leads").update({ status: "contactado" }).eq("id", lead.id);
+        if (camp.last_error) await admin.from("outreach_campaigns").update({ last_error: null, last_error_at: null }).eq("id", camp.id);
         await advance({ last_channel: "whatsapp" });
       } else {
         waState.consecutive_failures++;
-        if (waState.consecutive_failures >= CIRCUIT_THRESHOLD) { waState.status = "circuit_open"; await admin.from("outreach_campaigns").update({ status: "paused" }).eq("organization_id", orgId).eq("status", "running"); }
+        if (waState.consecutive_failures >= CIRCUIT_THRESHOLD) {
+          waState.status = "circuit_open";
+          await admin.from("outreach_campaigns")
+            .update({
+              status: "paused",
+              last_error: `Pausada automaticamente: falhas repetidas a enviar por WhatsApp (${r.error ?? "erro desconhecido"}).`,
+              last_error_at: nowIso,
+            })
+            .eq("organization_id", orgId).eq("status", "running");
+        }
         await retryLater(1);
       }
       await admin.from("outreach_channel_state").update({ daily_sent: waState.daily_sent, weekly_sent: waState.weekly_sent, consecutive_failures: waState.consecutive_failures, status: waState.status }).eq("id", waState.id);

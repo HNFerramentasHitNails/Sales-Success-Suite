@@ -2418,6 +2418,8 @@ export type Database = {
           created_at: string
           created_by: string | null
           id: string
+          last_error: string | null
+          last_error_at: string | null
           name: string
           organization_id: string
           schedule_mode: string
@@ -2432,6 +2434,8 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          last_error?: string | null
+          last_error_at?: string | null
           name: string
           organization_id: string
           schedule_mode?: string
@@ -2446,6 +2450,8 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          last_error?: string | null
+          last_error_at?: string | null
           name?: string
           organization_id?: string
           schedule_mode?: string

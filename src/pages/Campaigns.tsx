@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Send, Plus, Loader2, Play, Pause, Zap, ChevronRight, ChevronLeft, Mail, MessageCircle, Trash2, CheckCircle2,
+  Ban, AlertTriangle,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/contexts/OrganizationContext";
@@ -22,11 +23,11 @@ type Template = Database["public"]["Tables"]["outreach_templates"]["Row"];
 
 const STATUS_LABEL: Record<string, string> = {
   draft: "Rascunho", scheduled: "Agendada", running: "A correr", paused: "Pausada",
-  waiting_for_quota: "Aguarda quota", completed: "Concluída",
+  waiting_for_quota: "Aguarda quota", completed: "Concluída", canceled: "Cancelada",
 };
 const STATUS_VARIANT: Record<string, "secondary" | "default" | "outline" | "destructive"> = {
   draft: "secondary", scheduled: "outline", running: "default", paused: "destructive",
-  waiting_for_quota: "outline", completed: "secondary",
+  waiting_for_quota: "outline", completed: "secondary", canceled: "secondary",
 };
 
 const COUNTRIES = ["Portugal", "Brasil", "Estados Unidos", "Espanha", "Reino Unido", "México", "Colômbia", "Peru", "Chile", "Equador", "Venezuela", "Costa Rica", "República Dominicana", "El Salvador", "Guatemala", "Honduras", "Nicarágua"];
@@ -37,6 +38,7 @@ type Step = { channel: WaChannel; template_id: string; delay_hours: number };
 export default function Campaigns() {
   const { activeOrg, role } = useOrganization();
   const canWrite = role !== "read_only" && role !== null;
+  const isAdmin = role === "owner" || role === "admin";
 
   const [rows, setRows] = useState<Campaign[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
@@ -200,9 +202,35 @@ export default function Campaigns() {
 
   const setStatus = async (c: Campaign, status: string) => {
     setBusyId(c.id);
-    const { error } = await supabase.from("outreach_campaigns").update({ status }).eq("id", c.id);
+    // Ao retomar, limpa o erro anterior — se voltar a falhar, o disparador grava-o de novo.
+    const patch = status === "running" ? { status, last_error: null, last_error_at: null } : { status };
+    const { error } = await supabase.from("outreach_campaigns").update(patch).eq("id", c.id);
     setBusyId(null);
     if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
+    load();
+  };
+
+  const cancelCampaign = async (c: Campaign) => {
+    if (!confirm(`Cancelar a campanha "${c.name}"? Os envios pendentes são interrompidos e não pode ser retomada — pode sempre criar uma nova.`)) return;
+    setBusyId(c.id);
+    const { error } = await supabase.from("outreach_campaigns").update({ status: "canceled" }).eq("id", c.id);
+    if (!error) {
+      await supabase.from("outreach_campaign_targets").update({ status: "stopped" })
+        .eq("campaign_id", c.id).in("status", ["pending", "active"]);
+    }
+    setBusyId(null);
+    if (error) { toast({ title: "Erro ao cancelar", description: error.message, variant: "destructive" }); return; }
+    toast({ title: "Campanha cancelada" });
+    load();
+  };
+
+  const deleteCampaign = async (c: Campaign) => {
+    if (!confirm(`Eliminar definitivamente a campanha "${c.name}"? A lista de destinatários é removida; as mensagens já enviadas mantêm-se no histórico.`)) return;
+    setBusyId(c.id);
+    const { error } = await supabase.from("outreach_campaigns").delete().eq("id", c.id);
+    setBusyId(null);
+    if (error) { toast({ title: "Erro ao eliminar", description: error.message, variant: "destructive" }); return; }
+    toast({ title: "Campanha eliminada" });
     load();
   };
 
@@ -270,7 +298,15 @@ export default function Campaigns() {
                     <TableCell>{(c.channels ?? []).map((ch) => <Badge key={ch} variant="secondary" className="mr-1">{ch}</Badge>)}</TableCell>
                     <TableCell>{counts[c.id] ?? 0}</TableCell>
                     <TableCell>{stepCount}</TableCell>
-                    <TableCell><Badge variant={STATUS_VARIANT[c.status] ?? "secondary"}>{STATUS_LABEL[c.status] ?? c.status}</Badge></TableCell>
+                    <TableCell>
+                      <Badge variant={STATUS_VARIANT[c.status] ?? "secondary"}>{STATUS_LABEL[c.status] ?? c.status}</Badge>
+                      {c.last_error && (
+                        <div className="flex items-start gap-1 mt-1 text-xs text-destructive max-w-[240px]">
+                          <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                          <span title={c.last_error}>{c.last_error}</span>
+                        </div>
+                      )}
+                    </TableCell>
                     <TableCell className="text-right space-x-1">
                       {canWrite && (
                         <>
@@ -283,7 +319,13 @@ export default function Campaigns() {
                           {(c.status === "running" || c.status === "scheduled") && (
                             <Button size="sm" variant="ghost" title="Processar agora" disabled={busyId === c.id} onClick={() => processNow(c)}><Zap className="h-4 w-4" /></Button>
                           )}
+                          {!["completed", "canceled"].includes(c.status) && (
+                            <Button size="sm" variant="ghost" title="Cancelar" disabled={busyId === c.id} onClick={() => cancelCampaign(c)}><Ban className="h-4 w-4" /></Button>
+                          )}
                         </>
+                      )}
+                      {isAdmin && (
+                        <Button size="sm" variant="ghost" title="Eliminar" disabled={busyId === c.id} onClick={() => deleteCampaign(c)}><Trash2 className="h-4 w-4" /></Button>
                       )}
                     </TableCell>
                   </TableRow>
