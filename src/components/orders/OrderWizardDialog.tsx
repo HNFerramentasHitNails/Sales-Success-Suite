@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Check, Plus, Trash2 } from "lucide-react";
+import { Check, Plus, Ticket, Trash2 } from "lucide-react";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -86,6 +86,8 @@ export default function OrderWizardDialog({
   const [previewVat, setPreviewVat] = useState<{ treatment: string; destination_rate: number | null; reason: string | null } | null>(null);
   const [warehouses, setWarehouses] = useState<{ id: string; name: string; is_default: boolean }[]>([]);
   const [warehouseId, setWarehouseId] = useState("");
+  const [customerVoucher, setCustomerVoucher] = useState<{ id: string; code: string; amount: number; currency: string | null } | null>(null);
+  const [useVoucher, setUseVoucher] = useState(false);
 
   const reset = useCallback(() => {
     setStep(1);
@@ -97,6 +99,8 @@ export default function OrderWizardDialog({
     setShipTo({ name: "", address: "", city: "", postal_code: "", country: "" });
     setPreviewVat(null);
     setWarehouseId("");
+    setCustomerVoucher(null);
+    setUseVoucher(false);
   }, []);
 
   // Carregar opções ao abrir
@@ -124,6 +128,25 @@ export default function OrderWizardDialog({
   }, [open, activeOrg]);
 
   const selectedCustomer = useMemo(() => customers.find((c) => c.id === customerId) || null, [customers, customerId]);
+
+  // Voucher válido do cliente (a resgatar e aplicar diretamente à encomenda).
+  useEffect(() => {
+    if (!open || !activeOrg || !customerId) { setCustomerVoucher(null); setUseVoucher(false); return; }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase.from("vouchers")
+        .select("id, code, amount, currency, expires_at")
+        .eq("organization_id", activeOrg.id)
+        .eq("customer_id", customerId)
+        .eq("status", "active")
+        .order("created_at");
+      if (cancelled) return;
+      const valid = ((data ?? []) as any[]).find((v) => !v.expires_at || new Date(v.expires_at) >= new Date());
+      setCustomerVoucher(valid ? { id: valid.id, code: valid.code, amount: Number(valid.amount), currency: valid.currency } : null);
+      setUseVoucher(false);
+    })();
+    return () => { cancelled = true; };
+  }, [open, activeOrg, customerId]);
 
   // Quando muda cliente, pré-preenche morada de entrega se o cliente tiver alternativa
   useEffect(() => {
@@ -299,6 +322,18 @@ export default function OrderWizardDialog({
 
       try { await supabase.rpc("resolve_order_vat_treatment" as any, { p_order_id: orderId }); } catch { /* fallback nos triggers */ }
 
+      if (useVoucher && customerVoucher) {
+        const { error: redeemErr } = await supabase.rpc("redeem_voucher", {
+          _org_id: activeOrg.id, _voucher_id: customerVoucher.id, _customer_id: customerId,
+        });
+        if (redeemErr) {
+          toast({ title: "Voucher não aplicado", description: redeemErr.message, variant: "destructive" });
+        } else {
+          const { error: payErr } = await supabase.rpc("pay_order_with_wallet", { _order_id: orderId });
+          if (payErr) toast({ title: "Voucher resgatado, mas não foi possível aplicar à encomenda", description: payErr.message, variant: "destructive" });
+        }
+      }
+
       toast({ title: asStatus === "confirmada" ? "Encomenda confirmada" : "Rascunho criado" });
       onSaved();
       onOpenChange(false);
@@ -389,6 +424,23 @@ export default function OrderWizardDialog({
                       Valide o NIF no cartão do cliente para poder aplicar a autoliquidação intra-UE.
                     </p>
                   )}
+                </div>
+              )}
+
+              {selectedCustomer && customerVoucher && (
+                <div className="rounded-lg border border-emerald-300 bg-emerald-50 dark:bg-emerald-950/20 dark:border-emerald-900 p-3 flex items-center justify-between gap-3 flex-wrap">
+                  <div className="text-sm">
+                    <div className="font-medium flex items-center gap-2 text-emerald-900 dark:text-emerald-200">
+                      <Ticket className="h-4 w-4" /> Voucher válido disponível: {customerVoucher.code}
+                    </div>
+                    <div className="text-emerald-800/80 dark:text-emerald-300/80 text-xs">
+                      Valor: {fmtMoney(customerVoucher.amount, customerVoucher.currency || currency)}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="use-voucher" className="text-xs">Aplicar a esta encomenda</Label>
+                    <Switch id="use-voucher" checked={useVoucher} onCheckedChange={setUseVoucher} />
+                  </div>
                 </div>
               )}
 

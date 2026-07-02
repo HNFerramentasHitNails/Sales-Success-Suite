@@ -259,8 +259,11 @@ export default function OrderFormDialog({
     }
   };
 
+  const readOnly = !!order && ["paga", "faturada", "cancelada"].includes(order.status);
+
   const submit = async (e: FormEvent, asStatus?: OrderStatus) => {
     e.preventDefault();
+    if (readOnly) return;
     if (!activeOrg || !user) return;
     if (!customerId) { toast({ title: "Selecione um cliente", variant: "destructive" }); return; }
     const validLines = lines.filter((l) => l.description.trim() && Number(l.quantity) > 0);
@@ -358,6 +361,11 @@ export default function OrderFormDialog({
           <DialogTitle>{order ? `Editar ${order.order_number}` : "Nova encomenda"}</DialogTitle>
         </DialogHeader>
         <form onSubmit={(e) => submit(e)} className="space-y-4">
+          {readOnly && (
+            <div className="rounded-md border border-amber-500/40 bg-amber-50 dark:bg-amber-950/20 p-3 text-sm text-amber-800 dark:text-amber-200">
+              Esta encomenda está {order?.status === "cancelada" ? "cancelada" : order?.status === "faturada" ? "faturada" : "paga"} e já não pode ser editada.
+            </div>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div className="md:col-span-2">
               <Label>Cliente *</Label>
@@ -376,7 +384,7 @@ export default function OrderFormDialog({
             </div>
             <div>
               <Label>Data</Label>
-              <Input type="date" value={orderDate} onChange={(e) => setOrderDate(e.target.value)} />
+              <Input type="date" value={orderDate} disabled={readOnly} onChange={(e) => setOrderDate(e.target.value)} />
             </div>
           </div>
 
@@ -384,7 +392,7 @@ export default function OrderFormDialog({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 border rounded p-3">
             <div>
               <Label className="text-sm">Método de envio</Label>
-              <Select value={deliveryMethod} onValueChange={(v) => setDeliveryMethod(v as "pickup" | "carrier")}>
+              <Select value={deliveryMethod} onValueChange={(v) => setDeliveryMethod(v as "pickup" | "carrier")} disabled={readOnly}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="carrier">Envio por transportadora</SelectItem>
@@ -400,13 +408,13 @@ export default function OrderFormDialog({
             {deliveryMethod === "carrier" && (
               <div>
                 <Label className="text-sm">Transportadora</Label>
-                <Input value={deliveryCarrier} onChange={(e) => setDeliveryCarrier(e.target.value)} maxLength={120} placeholder="Ex.: CTT, DPD…" />
+                <Input value={deliveryCarrier} disabled={readOnly} onChange={(e) => setDeliveryCarrier(e.target.value)} maxLength={120} placeholder="Ex.: CTT, DPD…" />
               </div>
             )}
             {warehouses.length > 0 && (
               <div>
                 <Label className="text-sm">Armazém de origem</Label>
-                <Select value={warehouseId} onValueChange={setWarehouseId}>
+                <Select value={warehouseId} onValueChange={setWarehouseId} disabled={readOnly}>
                   <SelectTrigger><SelectValue placeholder="Predefinido" /></SelectTrigger>
                   <SelectContent>
                     {warehouses.map((w) => (
@@ -427,29 +435,29 @@ export default function OrderFormDialog({
                   Por defeito, a entrega usa a morada do cliente.
                 </p>
               </div>
-              <Switch checked={shipToOn} onCheckedChange={setShipToOn} />
+              <Switch checked={shipToOn} onCheckedChange={setShipToOn} disabled={readOnly} />
             </div>
             {shipToOn && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div className="md:col-span-2">
                   <Label>Destinatário</Label>
-                  <Input value={shipTo.name} onChange={(e) => setShipTo({ ...shipTo, name: e.target.value })} maxLength={200} />
+                  <Input value={shipTo.name} disabled={readOnly} onChange={(e) => setShipTo({ ...shipTo, name: e.target.value })} maxLength={200} />
                 </div>
                 <div className="md:col-span-2">
                   <Label>Morada</Label>
-                  <Input value={shipTo.address} onChange={(e) => setShipTo({ ...shipTo, address: e.target.value })} maxLength={300} />
+                  <Input value={shipTo.address} disabled={readOnly} onChange={(e) => setShipTo({ ...shipTo, address: e.target.value })} maxLength={300} />
                 </div>
                 <div>
                   <Label>Cidade</Label>
-                  <Input value={shipTo.city} onChange={(e) => setShipTo({ ...shipTo, city: e.target.value })} maxLength={100} />
+                  <Input value={shipTo.city} disabled={readOnly} onChange={(e) => setShipTo({ ...shipTo, city: e.target.value })} maxLength={100} />
                 </div>
                 <div>
                   <Label>Código Postal</Label>
-                  <Input value={shipTo.postal_code} onChange={(e) => setShipTo({ ...shipTo, postal_code: e.target.value })} maxLength={20} />
+                  <Input value={shipTo.postal_code} disabled={readOnly} onChange={(e) => setShipTo({ ...shipTo, postal_code: e.target.value })} maxLength={20} />
                 </div>
                 <div className="md:col-span-2">
                   <Label>País</Label>
-                  <CountrySelect value={shipTo.country} onChange={(v) => setShipTo({ ...shipTo, country: v })} />
+                  <CountrySelect value={shipTo.country} onChange={(v) => setShipTo({ ...shipTo, country: v })} disabled={readOnly} />
                 </div>
               </div>
             )}
@@ -458,9 +466,11 @@ export default function OrderFormDialog({
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label>Linhas</Label>
-              <Button type="button" size="sm" variant="outline" onClick={addLine}>
-                <Plus className="h-3 w-3 mr-1" /> Adicionar linha
-              </Button>
+              {!readOnly && (
+                <Button type="button" size="sm" variant="outline" onClick={addLine}>
+                  <Plus className="h-3 w-3 mr-1" /> Adicionar linha
+                </Button>
+              )}
             </div>
             <div className="space-y-3">
               {lines.map((l, i) => {
@@ -475,7 +485,7 @@ export default function OrderFormDialog({
                     <div className="flex items-start gap-2">
                       <div className="flex-1 space-y-2">
                         <Label className="text-sm">Produto</Label>
-                        <Select value={l.product_id ?? "__free__"} onValueChange={(v) => onPickProduct(i, v)}>
+                        <Select value={l.product_id ?? "__free__"} onValueChange={(v) => onPickProduct(i, v)} disabled={readOnly}>
                           <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="__free__">— Linha livre —</SelectItem>
@@ -483,30 +493,32 @@ export default function OrderFormDialog({
                           </SelectContent>
                         </Select>
                       </div>
-                      <Button type="button" size="icon" variant="ghost" className="mt-7" onClick={() => removeLine(i)} aria-label="Remover linha">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      {!readOnly && (
+                        <Button type="button" size="icon" variant="ghost" className="mt-7" onClick={() => removeLine(i)} aria-label="Remover linha">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                     <div className="space-y-2">
                       <Label className="text-sm">Descrição</Label>
-                      <Input value={l.description} onChange={(e) => updateLine(i, { description: e.target.value })} />
+                      <Input value={l.description} disabled={readOnly} onChange={(e) => updateLine(i, { description: e.target.value })} />
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                       <div className="space-y-2">
                         <Label className="text-sm">Quantidade</Label>
-                        <Input type="number" step="0.001" min="0" value={l.quantity} onChange={(e) => updateLine(i, { quantity: e.target.value })} />
+                        <Input type="number" step="0.001" min="0" disabled={readOnly} value={l.quantity} onChange={(e) => updateLine(i, { quantity: e.target.value })} />
                       </div>
                       <div className="space-y-2">
                         <Label className="text-sm">Preço s/ IVA</Label>
-                        <Input type="number" step="0.0001" min="0" value={l.unit_price} onChange={(e) => updateLine(i, { unit_price: e.target.value })} />
+                        <Input type="number" step="0.0001" min="0" disabled={readOnly} value={l.unit_price} onChange={(e) => updateLine(i, { unit_price: e.target.value })} />
                       </div>
                       <div className="space-y-2">
                         <Label className="text-sm">IVA %</Label>
-                        <Input type="number" step="0.01" min="0" max="100" value={l.tax_rate} onChange={(e) => updateLine(i, { tax_rate: e.target.value })} />
+                        <Input type="number" step="0.01" min="0" max="100" disabled={readOnly} value={l.tax_rate} onChange={(e) => updateLine(i, { tax_rate: e.target.value })} />
                       </div>
                       <div className="space-y-2">
                         <Label className="text-sm">Desconto %</Label>
-                        <Input type="number" step="0.01" min="0" max="100" value={l.discount_percent} onChange={(e) => updateLine(i, { discount_percent: e.target.value })} />
+                        <Input type="number" step="0.01" min="0" max="100" disabled={readOnly} value={l.discount_percent} onChange={(e) => updateLine(i, { discount_percent: e.target.value })} />
                       </div>
                     </div>
                     <div className="flex justify-end text-sm">
@@ -550,7 +562,7 @@ export default function OrderFormDialog({
                         NIF ainda não validado no VIES — valide o NIF do cliente para aplicar a autoliquidação intra-UE.
                       </p>
                     )}
-                    {serverOrder && (
+                    {serverOrder && !readOnly && (
                       <div className="flex justify-end">
                         <Button type="button" size="sm" variant="ghost" disabled={recalcBusy} onClick={recalcNow}>
                           <RefreshCw className={`h-3 w-3 mr-1 ${recalcBusy ? "animate-spin" : ""}`} />
@@ -587,13 +599,13 @@ export default function OrderFormDialog({
 
           <div>
             <Label>Notas</Label>
-            <Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={2000} />
+            <Textarea rows={2} value={notes} disabled={readOnly} onChange={(e) => setNotes(e.target.value)} maxLength={2000} />
           </div>
 
           {order && (
             <div>
               <Label>Estado</Label>
-              <Select value={status} onValueChange={(v) => setStatus(v as OrderStatus)}>
+              <Select value={status} onValueChange={(v) => setStatus(v as OrderStatus)} disabled={readOnly}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="rascunho">Rascunho</SelectItem>
@@ -630,7 +642,7 @@ export default function OrderFormDialog({
           )}
 
           <DialogFooter className="gap-2">
-            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
+            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>{readOnly ? "Fechar" : "Cancelar"}</Button>
             {!order && (
               <Button type="button" variant="outline" disabled={busy} onClick={(e) => submit(e as unknown as FormEvent, "rascunho")}>
                 Guardar rascunho
@@ -641,7 +653,7 @@ export default function OrderFormDialog({
                 Confirmar
               </Button>
             )}
-            {order && <Button type="submit" disabled={busy}>Guardar</Button>}
+            {order && !readOnly && <Button type="submit" disabled={busy}>Guardar</Button>}
           </DialogFooter>
         </form>
       </DialogContent>
