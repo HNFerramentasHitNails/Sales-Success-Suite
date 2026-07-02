@@ -84,6 +84,8 @@ export default function OrderWizardDialog({
   const [shipToOn, setShipToOn] = useState(false);
   const [shipTo, setShipTo] = useState({ name: "", address: "", city: "", postal_code: "", country: "" });
   const [previewVat, setPreviewVat] = useState<{ treatment: string; destination_rate: number | null; reason: string | null } | null>(null);
+  const [warehouses, setWarehouses] = useState<{ id: string; name: string; is_default: boolean }[]>([]);
+  const [warehouseId, setWarehouseId] = useState("");
 
   const reset = useCallback(() => {
     setStep(1);
@@ -94,25 +96,30 @@ export default function OrderWizardDialog({
     setShipToOn(false);
     setShipTo({ name: "", address: "", city: "", postal_code: "", country: "" });
     setPreviewVat(null);
+    setWarehouseId("");
   }, []);
 
   // Carregar opções ao abrir
   useEffect(() => {
     if (!open || !activeOrg) return;
     (async () => {
-      const [c, p] = await Promise.all([
+      const [c, p, w] = await Promise.all([
         supabase.from("customers")
           .select("id, name, company_name, email, phone, country, vat_number, vat_valid, shipping_same_as_billing, shipping_address, shipping_city, shipping_postal_code, shipping_country, address, city, postal_code")
           .eq("organization_id", activeOrg.id).order("name"),
         supabase.from("products")
           .select("id, name, unit_price, tax_rate, is_tax_exempt, tracks_stock, stock_quantity")
           .eq("organization_id", activeOrg.id).eq("is_active", true).order("name"),
+        supabase.from("warehouses").select("id, name, is_default").eq("organization_id", activeOrg.id).eq("is_active", true).order("name"),
       ]);
       setCustomers((c.data ?? []) as any);
       setProducts(((p.data ?? []) as any[]).map((x) => ({
         id: x.id, name: x.name, unit_price: Number(x.unit_price), tax_rate: Number(x.tax_rate), is_tax_exempt: x.is_tax_exempt,
         tracks_stock: !!x.tracks_stock, stock_quantity: Number(x.stock_quantity ?? 0),
       })));
+      const whs = (w.data ?? []) as { id: string; name: string; is_default: boolean }[];
+      setWarehouses(whs);
+      setWarehouseId((prev) => prev || whs.find((x) => x.is_default)?.id || "");
     })();
   }, [open, activeOrg]);
 
@@ -271,6 +278,7 @@ export default function OrderWizardDialog({
         currency,
         notes: notes.trim() || null,
         created_by: user.id,
+        warehouse_id: warehouseId || null,
         ...shipFields,
       }).select("id").single();
       if (insErr) throw insErr;
@@ -436,6 +444,20 @@ export default function OrderWizardDialog({
                     <Label>País</Label>
                     <CountrySelect value={shipTo.country} onChange={(v) => setShipTo({ ...shipTo, country: v })} />
                   </div>
+                </div>
+              )}
+
+              {warehouses.length > 0 && (
+                <div className="space-y-2 border rounded-lg p-4">
+                  <Label className="text-sm">Armazém de origem</Label>
+                  <Select value={warehouseId} onValueChange={setWarehouseId}>
+                    <SelectTrigger className="h-11"><SelectValue placeholder="Predefinido" /></SelectTrigger>
+                    <SelectContent>
+                      {warehouses.map((w) => (
+                        <SelectItem key={w.id} value={w.id}>{w.name}{w.is_default ? " (predefinido)" : ""}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               )}
 
