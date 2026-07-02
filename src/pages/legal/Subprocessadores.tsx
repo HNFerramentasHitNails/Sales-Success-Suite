@@ -3,7 +3,7 @@ import LegalLayout from "./LegalLayout";
 const ROWS = [
   { sub: "Supabase", fim: "Base de dados e autenticação", loc: "UE (eu-west-3, França)", gar: "EEE" },
   { sub: "Vercel", fim: "Alojamento e CDN", loc: "UE (servidores europeus)", gar: "SCC / DPF" },
-  { sub: "Stripe", fim: "Pagamentos e faturação", loc: "UE / EUA", gar: "SCC / DPF [confirmar]" },
+  { sub: "Stripe", fim: "Pagamentos e faturação", loc: "UE (contrato) / EUA (processamento)", gar: "DPF, com SCC como salvaguarda adicional" },
   { sub: "Resend", fim: "Envio de email", loc: "Portugal (servidores de email)", gar: "SCC / DPF" },
   { sub: "[Fornecedor de IA: DeepSeek / OpenAI / Anthropic]", fim: "Funcionalidades de IA", loc: "[China / EUA — conforme selecionado]", gar: "[SCC / DPF / declaração do cliente]" },
   { sub: "Evolution API / WhatsApp (Meta)", fim: "Mensagens", loc: "Portugal", gar: "N/A (dentro do EEE)" },
