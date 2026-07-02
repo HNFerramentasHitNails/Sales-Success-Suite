@@ -5,7 +5,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Trash2, RefreshCw, Wallet, Loader2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
@@ -463,56 +462,61 @@ export default function OrderFormDialog({
                 <Plus className="h-3 w-3 mr-1" /> Adicionar linha
               </Button>
             </div>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-48">Produto</TableHead>
-                  <TableHead>Descrição</TableHead>
-                  <TableHead className="w-20 text-right">Qtd</TableHead>
-                  <TableHead className="w-28 text-right">Preço s/ IVA</TableHead>
-                  <TableHead className="w-20 text-right">IVA %</TableHead>
-                  <TableHead className="w-20 text-right">Desc. %</TableHead>
-                  <TableHead className="w-28 text-right">Total</TableHead>
-                  <TableHead className="w-10"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {lines.map((l, i) => {
-                  const q = Number(l.quantity) || 0;
-                  const up = Number(l.unit_price) || 0;
-                  const disc = Number(l.discount_percent) || 0;
-                  const rate = Number(l.tax_rate) || 0;
-                  const sub = q * up * (1 - disc / 100);
-                  const total = sub * (1 + rate / 100);
-                  return (
-                    <TableRow key={i}>
-                      <TableCell>
+            <div className="space-y-3">
+              {lines.map((l, i) => {
+                const q = Number(l.quantity) || 0;
+                const up = Number(l.unit_price) || 0;
+                const disc = Number(l.discount_percent) || 0;
+                const rate = Number(l.tax_rate) || 0;
+                const sub = q * up * (1 - disc / 100);
+                const total = sub * (1 + rate / 100);
+                return (
+                  <div key={i} className="rounded-lg border p-3 space-y-3">
+                    <div className="flex items-start gap-2">
+                      <div className="flex-1 space-y-2">
+                        <Label className="text-sm">Produto</Label>
                         <Select value={l.product_id ?? "__free__"} onValueChange={(v) => onPickProduct(i, v)}>
-                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="__free__">— Linha livre —</SelectItem>
                             {products.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
                           </SelectContent>
                         </Select>
-                      </TableCell>
-                      <TableCell>
-                        <Input value={l.description} onChange={(e) => updateLine(i, { description: e.target.value })} />
-                      </TableCell>
-                      <TableCell><Input className="text-right" type="number" step="0.001" min="0" value={l.quantity} onChange={(e) => updateLine(i, { quantity: e.target.value })} /></TableCell>
-                      <TableCell><Input className="text-right" type="number" step="0.0001" min="0" value={l.unit_price} onChange={(e) => updateLine(i, { unit_price: e.target.value })} /></TableCell>
-                      <TableCell><Input className="text-right" type="number" step="0.01" min="0" max="100" value={l.tax_rate} onChange={(e) => updateLine(i, { tax_rate: e.target.value })} /></TableCell>
-                      <TableCell><Input className="text-right" type="number" step="0.01" min="0" max="100" value={l.discount_percent} onChange={(e) => updateLine(i, { discount_percent: e.target.value })} /></TableCell>
-                      <TableCell className="text-right text-sm">{fmtMoney(total, currency)}</TableCell>
-                      <TableCell>
-                        <Button type="button" size="icon" variant="ghost" onClick={() => removeLine(i)}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+                      </div>
+                      <Button type="button" size="icon" variant="ghost" className="mt-7" onClick={() => removeLine(i)} aria-label="Remover linha">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-sm">Descrição</Label>
+                      <Input value={l.description} onChange={(e) => updateLine(i, { description: e.target.value })} />
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <div className="space-y-2">
+                        <Label className="text-sm">Quantidade</Label>
+                        <Input type="number" step="0.001" min="0" value={l.quantity} onChange={(e) => updateLine(i, { quantity: e.target.value })} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-sm">Preço s/ IVA</Label>
+                        <Input type="number" step="0.0001" min="0" value={l.unit_price} onChange={(e) => updateLine(i, { unit_price: e.target.value })} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-sm">IVA %</Label>
+                        <Input type="number" step="0.01" min="0" max="100" value={l.tax_rate} onChange={(e) => updateLine(i, { tax_rate: e.target.value })} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-sm">Desconto %</Label>
+                        <Input type="number" step="0.01" min="0" max="100" value={l.discount_percent} onChange={(e) => updateLine(i, { discount_percent: e.target.value })} />
+                      </div>
+                    </div>
+                    <div className="flex justify-end text-sm">
+                      <span className="text-muted-foreground mr-2">Total da linha:</span>
+                      <span className="font-semibold tabular-nums">{fmtMoney(total, currency)}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
           <div className="flex justify-end">
