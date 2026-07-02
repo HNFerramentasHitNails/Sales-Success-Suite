@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Send, Plus, Loader2, Play, Pause, Zap, ChevronRight, ChevronLeft, Mail, MessageCircle, Trash2, CheckCircle2, HelpCircle,
+  Send, Plus, Loader2, Play, Pause, Zap, ChevronRight, ChevronLeft, Mail, MessageCircle, Trash2, CheckCircle2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/contexts/OrganizationContext";
@@ -300,20 +300,17 @@ export default function Campaigns() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               Nova Campanha — Passo {step}/5
-              <button type="button" className="text-muted-foreground hover:text-foreground" title="Como funciona?" onClick={() => window.dispatchEvent(new Event("app:tour-campaign-wizard"))}>
-                <HelpCircle className="h-4 w-4" />
-              </button>
             </DialogTitle>
           </DialogHeader>
 
           {/* indicador de passos */}
-          <div className="flex gap-1 mb-2" data-tour="wizard-progress">
+          <div className="flex gap-1 mb-2">
             {[1, 2, 3, 4, 5].map((s) => (
               <div key={s} className={`h-1.5 flex-1 rounded ${s <= step ? "bg-primary" : "bg-muted"}`} />
             ))}
           </div>
 
-          <div data-tour="wizard-body">
+          <div>
 
           {step === 1 && (
             <div className="space-y-3">
@@ -505,7 +502,7 @@ export default function Campaigns() {
 
           </div>
 
-          <DialogFooter className="flex justify-between sm:justify-between" data-tour="wizard-nav">
+          <DialogFooter className="flex justify-between sm:justify-between">
             <div>
               {step > 1 && <Button variant="ghost" onClick={() => setStep(step - 1)}><ChevronLeft className="h-4 w-4 mr-1" /> Anterior</Button>}
             </div>

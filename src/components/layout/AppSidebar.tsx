@@ -72,7 +72,7 @@ export default function AppSidebar() {
           // sidebar em modo ícone: lista plana (sem colapsáveis)
           if (collapsed) {
             return (
-              <SidebarGroup key={group.label} data-tour={group.tourId}>
+              <SidebarGroup key={group.label}>
                 <SidebarGroupContent>
                   <SidebarMenu>{group.items.map(renderItem)}</SidebarMenu>
                 </SidebarGroupContent>
@@ -86,7 +86,7 @@ export default function AppSidebar() {
               onOpenChange={(o) => setOpenMap((m) => ({ ...m, [group.label]: o }))}
               className="group/collapsible"
             >
-              <SidebarGroup data-tour={group.tourId}>
+              <SidebarGroup>
                 <SidebarGroupLabel asChild>
                   <CollapsibleTrigger className="flex w-full items-center justify-between text-sidebar-foreground/70 hover:text-sidebar-foreground">
                     {group.label}

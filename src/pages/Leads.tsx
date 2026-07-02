@@ -303,7 +303,7 @@ export default function Leads() {
       </div>
 
       {/* filtros */}
-      <div className="flex flex-wrap gap-2 items-center" data-tour="leads-filters">
+      <div className="flex flex-wrap gap-2 items-center">
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input className="pl-8" placeholder="Procurar nome, email, empresa…" value={search} onChange={(e) => setSearch(e.target.value)} />

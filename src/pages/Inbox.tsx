@@ -100,7 +100,7 @@ export default function Inbox() {
 
       <Card className="grid grid-cols-1 md:grid-cols-[320px_1fr] overflow-hidden" style={{ height: "calc(100vh - 230px)" }}>
         {/* Lista de conversas */}
-        <div className="border-r overflow-y-auto" data-tour="inbox-threads">
+        <div className="border-r overflow-y-auto">
           {loading ? (
             <div className="p-6 text-center"><Loader2 className="h-5 w-5 animate-spin inline" /></div>
           ) : threads.length === 0 ? (
@@ -119,7 +119,7 @@ export default function Inbox() {
         </div>
 
         {/* Conversa */}
-        <div className="flex flex-col min-h-0" data-tour="inbox-conversation">
+        <div className="flex flex-col min-h-0">
           {!selected ? (
             <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
               <div className="text-center"><MessageCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />Escolhe uma conversa</div>
