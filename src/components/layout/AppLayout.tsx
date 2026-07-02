@@ -29,7 +29,7 @@ export default function AppLayout() {
       <div className="min-h-screen flex w-full bg-background">
         <AppSidebar />
         <div className="flex-1 flex flex-col min-w-0">
-          <header className="h-14 flex items-center gap-3 border-b px-3 bg-card">
+          <header className="h-14 flex items-center gap-1 sm:gap-3 border-b px-2 sm:px-3 bg-card">
             <span data-tour="sidebar-toggle"><SidebarTrigger /></span>
             <Button
               variant="outline"
@@ -81,7 +81,7 @@ export default function AppLayout() {
             <span data-tour="org-switcher"><OrgSwitcher /></span>
             <span data-tour="user-menu"><UserMenu /></span>
           </header>
-          <main id="main-content" className="flex-1 overflow-auto p-6">
+          <main id="main-content" className="flex-1 overflow-auto p-3 sm:p-6">
             <Outlet />
           </main>
         </div>

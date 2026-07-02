@@ -150,7 +150,7 @@ export default function Team() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-display text-3xl font-bold tracking-tight">Equipa</h1>
+        <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight">Equipa</h1>
         <p className="text-muted-foreground text-sm">Membros e convites desta organização.</p>
       </div>
 

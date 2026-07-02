@@ -552,7 +552,7 @@ export default function DistributionPartners() {
                 maxLength={200}
               />
             </div>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <Label>Tipo</Label>
                 <Select value={draft.type} onValueChange={(v: any) => setDraft({ ...draft, type: v })}>
@@ -584,7 +584,7 @@ export default function DistributionPartners() {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <Label>Email</Label>
                 <Input
@@ -771,7 +771,7 @@ export default function DistributionPartners() {
                   maxLength={200}
                 />
               </div>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <Label>Estado</Label>
                   <Select

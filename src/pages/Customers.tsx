@@ -135,7 +135,7 @@ export default function Customers() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <h1 className="font-display text-3xl font-bold tracking-tight">Clientes</h1>
+        <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight">Clientes</h1>
         {canWrite && (
           <div className="flex items-center gap-2">
             {(isAdmin || role === "sales_director") && (
@@ -199,9 +199,9 @@ export default function Customers() {
                 )}
                 <TableHead>Nome</TableHead>
                 <TableHead>Email / Telefone</TableHead>
-                <TableHead>Segmento</TableHead>
-                <TableHead>Etiquetas</TableHead>
-                <TableHead>Comercial</TableHead>
+                <TableHead className="hidden md:table-cell">Segmento</TableHead>
+                <TableHead className="hidden lg:table-cell">Etiquetas</TableHead>
+                <TableHead className="hidden md:table-cell">Comercial</TableHead>
                 <TableHead></TableHead>
               </TableRow>
             </TableHeader>
@@ -227,14 +227,14 @@ export default function Customers() {
                     <div>{c.email || "—"}</div>
                     <div className="text-xs text-muted-foreground">{c.phone || ""}</div>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="hidden md:table-cell">
                     {c.segment ? (
                       <Badge style={{ backgroundColor: segmentColors[c.segment] || "#64748b", color: "#fff" }}>
                         {c.segment}
                       </Badge>
                     ) : "—"}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="hidden lg:table-cell">
                     <div className="flex flex-wrap gap-1">
                       {(c.tags ?? []).slice(0, 3).map((t) => {
                         const def = tagDefs.find((d) => d.name === t);
@@ -247,7 +247,7 @@ export default function Customers() {
                       {(c.tags?.length ?? 0) > 3 && <span className="text-xs text-muted-foreground">+{(c.tags?.length ?? 0) - 3}</span>}
                     </div>
                   </TableCell>
-                  <TableCell className="text-sm">{c.assigned_member_id ? memberLabel.get(c.assigned_member_id) ?? "—" : "—"}</TableCell>
+                  <TableCell className="hidden md:table-cell text-sm">{c.assigned_member_id ? memberLabel.get(c.assigned_member_id) ?? "—" : "—"}</TableCell>
                   <TableCell onClick={(e) => e.stopPropagation()}>
                     {isAdmin && (
                       <Button size="sm" variant="ghost" onClick={() => remove(c)}>

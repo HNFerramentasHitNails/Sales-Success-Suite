@@ -221,7 +221,7 @@ export default function Dashboard() {
       <SetupChecklist />
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="font-display text-3xl font-bold tracking-tight">Painel</h1>
+          <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight">Painel</h1>
           <p className="text-sm text-muted-foreground">Visão geral do negócio · {activeOrg?.name}</p>
         </div>
         <Select value={preset} onValueChange={(v) => setPreset(v as Preset)}>

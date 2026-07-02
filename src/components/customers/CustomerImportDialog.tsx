@@ -297,7 +297,7 @@ export default function CustomerImportDialog({ open, onOpenChange, onImported }:
                   <CheckCircle2 className="h-5 w-5" />
                   <span className="font-medium">Importação concluída</span>
                 </div>
-                <div className="grid grid-cols-4 gap-3 text-center text-sm">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center text-sm">
                   <div><div className="text-2xl font-bold tabular-nums">{result.inserted}</div><div className="text-muted-foreground">Inseridos</div></div>
                   <div><div className="text-2xl font-bold tabular-nums">{result.updated}</div><div className="text-muted-foreground">Atualizados</div></div>
                   <div><div className="text-2xl font-bold tabular-nums">{result.skipped}</div><div className="text-muted-foreground">Ignorados</div></div>

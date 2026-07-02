@@ -572,7 +572,7 @@ export default function Calls() {
             <DialogTitle>Registar Chamada</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               <Button
                 variant={actMode === "complete" ? "default" : "outline"}
                 onClick={() => setActMode("complete")}

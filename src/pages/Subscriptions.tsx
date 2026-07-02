@@ -427,7 +427,7 @@ export default function Subscriptions() {
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div><Label>Início</Label><Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} /></div>
               <div><Label>Próxima execução</Label><Input type="date" value={nextRun} onChange={(e) => setNextRun(e.target.value)} /></div>
               <div><Label>Fim (opcional)</Label><Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} /></div>

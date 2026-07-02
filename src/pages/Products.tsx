@@ -472,7 +472,7 @@ export default function Products() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <h1 className="font-display text-3xl font-bold tracking-tight">Produtos</h1>
+        <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight">Produtos</h1>
         {canWrite && <Button onClick={openNew}><Plus className="h-4 w-4 mr-1" /> Novo produto</Button>}
       </div>
 
@@ -504,11 +504,11 @@ export default function Products() {
             <TableHeader>
               <TableRow>
                 <TableHead>Nome</TableHead>
-                <TableHead>SKU</TableHead>
-                <TableHead>Tipo</TableHead>
-                <TableHead>Categoria</TableHead>
+                <TableHead className="hidden md:table-cell">SKU</TableHead>
+                <TableHead className="hidden lg:table-cell">Tipo</TableHead>
+                <TableHead className="hidden lg:table-cell">Categoria</TableHead>
                 <TableHead className="text-right">Preço (s/ IVA)</TableHead>
-                <TableHead className="text-right">IVA</TableHead>
+                <TableHead className="hidden md:table-cell text-right">IVA</TableHead>
                 <TableHead className="text-right">Stock</TableHead>
                 <TableHead>Estado</TableHead>
                 <TableHead></TableHead>
@@ -533,11 +533,11 @@ export default function Products() {
                       <div className="text-xs text-muted-foreground">{channelCounts.get(p.id)} canal(is)</div>
                     ) : null}
                   </TableCell>
-                  <TableCell className="text-xs text-muted-foreground">{p.sku || "—"}</TableCell>
-                  <TableCell>{TYPES.find((t) => t.v === p.product_type)?.l ?? p.product_type}</TableCell>
-                  <TableCell>{p.category || "—"}</TableCell>
+                  <TableCell className="hidden md:table-cell text-xs text-muted-foreground">{p.sku || "—"}</TableCell>
+                  <TableCell className="hidden lg:table-cell">{TYPES.find((t) => t.v === p.product_type)?.l ?? p.product_type}</TableCell>
+                  <TableCell className="hidden lg:table-cell">{p.category || "—"}</TableCell>
                   <TableCell className="text-right">{fmtMoney(Number(p.unit_price), p.currency || currency)}</TableCell>
-                  <TableCell className="text-right text-xs">{p.is_tax_exempt ? "Isento" : `${Number(p.tax_rate)}%`}</TableCell>
+                  <TableCell className="hidden md:table-cell text-right text-xs">{p.is_tax_exempt ? "Isento" : `${Number(p.tax_rate)}%`}</TableCell>
                   <TableCell className="text-right text-xs">
                     {p.tracks_stock ? (
                       <div className="flex items-center justify-end gap-2">

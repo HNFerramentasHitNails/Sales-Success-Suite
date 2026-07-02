@@ -37,7 +37,7 @@ export default function LegalLayout({ title, updated, children }: Props) {
       </header>
 
       <main className="container-app py-10 flex-1 w-full max-w-3xl mx-auto">
-        <h1 className="font-display text-3xl font-bold tracking-tight">{title}</h1>
+        <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight">{title}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Última atualização: {updated ?? LEGAL.dataAtualizacao}
         </p>

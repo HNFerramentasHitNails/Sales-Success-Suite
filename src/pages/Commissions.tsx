@@ -422,7 +422,7 @@ export default function Commissions() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-display text-3xl font-bold tracking-tight">Comissões</h1>
+        <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight">Comissões</h1>
         <p className="text-sm text-muted-foreground">
           Base de cálculo: valor das linhas sem IVA, em encomendas pagas ou faturadas. O total de comissão inclui ajustes manuais quando existam (bónus, correções, clawbacks).
         </p>

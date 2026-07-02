@@ -131,7 +131,7 @@ export default function Plan() {
   if (!isAdmin) {
     return (
       <div className="space-y-4">
-        <h1 className="font-display text-3xl font-bold tracking-tight">Plano</h1>
+        <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight">Plano</h1>
         <Alert><AlertDescription>Só administradores podem gerir o plano da organização.</AlertDescription></Alert>
       </div>
     );
@@ -269,7 +269,7 @@ export default function Plan() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="font-display text-3xl font-bold tracking-tight">Plano</h1>
+          <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight">Plano</h1>
           <p className="text-muted-foreground text-sm">Subscrição da organização, uso atual e planos disponíveis.</p>
         </div>
         <Button variant="outline" onClick={openBillingPortal} disabled={busy === "portal"}>

@@ -338,7 +338,7 @@ export default function Orders() {
               <TableRow>
                 <TableHead>Nº</TableHead>
                 <TableHead>Cliente</TableHead>
-                <TableHead>Data</TableHead>
+                <TableHead className="hidden md:table-cell">Data</TableHead>
                 <TableHead>Estado</TableHead>
                 <TableHead className="text-right">Total</TableHead>
                 <TableHead></TableHead>
@@ -370,7 +370,7 @@ export default function Orders() {
                   <TableRow key={o.id} className="cursor-pointer hover:bg-muted/40" onClick={() => canWrite && openEdit(o)}>
                     <TableCell className="font-medium">{o.order_number}</TableCell>
                     <TableCell>{o.customers?.name ?? "—"}</TableCell>
-                    <TableCell>{fmtDate(o.order_date)}</TableCell>
+                    <TableCell className="hidden md:table-cell">{fmtDate(o.order_date)}</TableCell>
                     <TableCell>
                       <div className="flex flex-col gap-1">
                         <div className="flex items-center gap-1">

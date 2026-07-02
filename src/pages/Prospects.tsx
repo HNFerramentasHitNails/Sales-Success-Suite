@@ -191,7 +191,7 @@ export default function Prospects() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <h1 className="font-display text-3xl font-bold tracking-tight">Prospecção</h1>
+        <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight">Prospecção</h1>
         {canWrite && <Button onClick={openNew}><Plus className="h-4 w-4 mr-1" /> Novo prospect</Button>}
       </div>
 

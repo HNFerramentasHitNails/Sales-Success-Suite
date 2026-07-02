@@ -49,7 +49,7 @@ export default function Channels() {
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="font-display text-3xl font-bold tracking-tight">Canais de venda</h1>
+          <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight">Canais de venda</h1>
           <p className="text-sm text-muted-foreground">Canais onde os produtos são vendidos · {activeOrg?.name}</p>
         </div>
       </div>

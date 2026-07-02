@@ -119,7 +119,7 @@ export default function Invoices() {
 
   return (
     <div className="space-y-6">
-      <h1 className="font-display text-3xl font-bold tracking-tight">Faturas</h1>
+      <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight">Faturas</h1>
 
       <Card>
         <CardContent className="p-4 space-y-4">
@@ -142,11 +142,11 @@ export default function Invoices() {
             <TableHeader>
               <TableRow>
                 <TableHead>Nº fatura</TableHead>
-                <TableHead>Encomenda</TableHead>
+                <TableHead className="hidden md:table-cell">Encomenda</TableHead>
                 <TableHead>Cliente</TableHead>
                 <TableHead>Estado</TableHead>
-                <TableHead>Sincronização</TableHead>
-                <TableHead>Data</TableHead>
+                <TableHead className="hidden lg:table-cell">Sincronização</TableHead>
+                <TableHead className="hidden md:table-cell">Data</TableHead>
                 <TableHead className="text-right">Total</TableHead>
                 <TableHead></TableHead>
               </TableRow>
@@ -164,7 +164,7 @@ export default function Invoices() {
                     onClick={() => openDetail(r.id)}
                   >
                     <TableCell className="font-medium">{r.invoice_number ?? "—"}</TableCell>
-                    <TableCell>{r.orders?.order_number ?? "—"}</TableCell>
+                    <TableCell className="hidden md:table-cell">{r.orders?.order_number ?? "—"}</TableCell>
                     <TableCell>{r.customers?.name ?? "—"}</TableCell>
                     <TableCell>
                       <div className="flex flex-col gap-1">
@@ -174,7 +174,7 @@ export default function Invoices() {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="hidden lg:table-cell">
                       <div className="flex flex-col gap-1">
                         <Badge className={ext.cls} variant="secondary">{ext.l}</Badge>
                         {r.external_status === "error" && r.error_message && (
@@ -182,7 +182,7 @@ export default function Invoices() {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell>{fmtDate(r.issued_at ?? r.created_at)}</TableCell>
+                    <TableCell className="hidden md:table-cell">{fmtDate(r.issued_at ?? r.created_at)}</TableCell>
                     <TableCell className="text-right">{fmtMoney(Number(r.total), r.currency || currency)}</TableCell>
                     <TableCell className="text-right">
                       {r.pdf_url && (

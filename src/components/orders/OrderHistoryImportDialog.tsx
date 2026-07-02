@@ -348,7 +348,7 @@ export default function OrderHistoryImportDialog({ open, onOpenChange, onImporte
                   <CheckCircle2 className="h-5 w-5" />
                   <span className="font-medium">Importação concluída</span>
                 </div>
-                <div className="grid grid-cols-5 gap-3 text-center text-sm">
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-center text-sm">
                   <div><div className="text-2xl font-bold tabular-nums">{result.inserted}</div><div className="text-muted-foreground">Inseridas</div></div>
                   <div><div className="text-2xl font-bold tabular-nums">{result.no_customer}</div><div className="text-muted-foreground">Sem cliente</div></div>
                   <div><div className="text-2xl font-bold tabular-nums">{result.duplicates}</div><div className="text-muted-foreground">Duplicadas</div></div>

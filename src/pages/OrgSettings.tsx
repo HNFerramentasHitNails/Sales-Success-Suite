@@ -231,7 +231,7 @@ export default function OrgSettings() {
   return (
     <div className="space-y-6 max-w-2xl">
       <div>
-        <h1 className="font-display text-3xl font-bold tracking-tight">Definições da Organização</h1>
+        <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight">Definições da Organização</h1>
         <p className="text-muted-foreground text-sm">Marca, idioma, moeda e país.</p>
       </div>
       <Card>
@@ -255,7 +255,7 @@ export default function OrgSettings() {
                 <div className="h-9 w-9 rounded border" style={{ background: `hsl(${primaryColor})` }} />
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <Label htmlFor="locale">Idioma</Label>
                 <Input id="locale" value={locale} onChange={(e) => setLocale(e.target.value)} disabled={!isAdmin} />
