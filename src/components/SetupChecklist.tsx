@@ -10,8 +10,9 @@ import { Button } from "@/components/ui/button";
 type Step = { key: string; label: string; done: boolean; href: string; cta: string };
 
 export default function SetupChecklist() {
-  const { activeOrg } = useOrganization();
+  const { activeOrg, isAdmin } = useOrganization();
   const { isEnabled } = useEntitlements();
+  const outreachOn = isEnabled("module_outreach");
   const [steps, setSteps] = useState<Step[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [dismissed, setDismissed] = useState(false);
@@ -21,27 +22,53 @@ export default function SetupChecklist() {
   const load = useCallback(async () => {
     if (!activeOrg) return;
     const org = activeOrg.id;
-    const [leadsRes, campRes, waRes, domRes] = await Promise.all([
-      supabase.from("outreach_leads").select("id", { count: "exact", head: true }).eq("organization_id", org).is("deleted_at", null),
-      supabase.from("outreach_campaigns").select("id", { count: "exact", head: true }).eq("organization_id", org),
-      supabase.from("outreach_whatsapp_instances").select("id").eq("organization_id", org).eq("status", "open").limit(1),
-      supabase.from("outreach_email_domains").select("id").eq("organization_id", org).eq("is_active", true).gte("health_score", 100).limit(1),
+
+    const [membersRes, productsRes, customersRes, connRes, ordersRes, leadsRes, campRes, waRes, domRes] = await Promise.all([
+      supabase.from("organization_members").select("id", { count: "exact", head: true }).eq("organization_id", org).eq("status", "active"),
+      supabase.from("products").select("id", { count: "exact", head: true }).eq("organization_id", org),
+      supabase.from("customers").select("id", { count: "exact", head: true }).eq("organization_id", org),
+      supabase.from("connections").select("id", { count: "exact", head: true }).eq("organization_id", org).eq("status", "active"),
+      supabase.from("orders").select("id", { count: "exact", head: true }).eq("organization_id", org),
+      outreachOn
+        ? supabase.from("outreach_leads").select("id", { count: "exact", head: true }).eq("organization_id", org).is("deleted_at", null)
+        : Promise.resolve({ count: 0 } as { count: number | null }),
+      outreachOn
+        ? supabase.from("outreach_campaigns").select("id", { count: "exact", head: true }).eq("organization_id", org)
+        : Promise.resolve({ count: 0 } as { count: number | null }),
+      outreachOn
+        ? supabase.from("outreach_whatsapp_instances").select("id").eq("organization_id", org).eq("status", "open").limit(1)
+        : Promise.resolve({ data: [] as unknown[] }),
+      outreachOn
+        ? supabase.from("outreach_email_domains").select("id").eq("organization_id", org).eq("is_active", true).gte("health_score", 100).limit(1)
+        : Promise.resolve({ data: [] as unknown[] }),
     ]);
-    setSteps([
+
+    const core: Step[] = [
+      { key: "org", label: "Configurar dados fiscais e marca", done: !!activeOrg.legal_name || !!activeOrg.tax_id, href: "/app/settings?tab=org", cta: "Configurar" },
+      { key: "team", label: "Convidar a equipa", done: (membersRes.count ?? 0) > 1, href: "/app/settings?tab=team", cta: "Convidar" },
+      { key: "products", label: "Adicionar produtos ao catálogo", done: (productsRes.count ?? 0) > 0, href: "/app/products", cta: "Adicionar" },
+      { key: "customers", label: "Adicionar o primeiro cliente", done: (customersRes.count ?? 0) > 0, href: "/app/customers", cta: "Adicionar" },
+      { key: "connect", label: "Ligar pagamentos e/ou faturação", done: (connRes.count ?? 0) > 0, href: "/app/integrations", cta: "Ligar" },
+      { key: "order", label: "Criar a primeira encomenda", done: (ordersRes.count ?? 0) > 0, href: "/app/orders", cta: "Criar" },
+    ];
+
+    const outreach: Step[] = outreachOn ? [
       { key: "wa", label: "Ligar o WhatsApp", done: (waRes.data?.length ?? 0) > 0, href: "/app/settings?tab=whatsapp", cta: "Ligar" },
       { key: "dom", label: "Verificar um domínio de email", done: (domRes.data?.length ?? 0) > 0, href: "/app/settings?tab=domains", cta: "Configurar" },
       { key: "leads", label: "Importar ou capturar leads", done: (leadsRes.count ?? 0) > 0, href: "/app/marketplace", cta: "Capturar" },
       { key: "camp", label: "Criar a primeira campanha", done: (campRes.count ?? 0) > 0, href: "/app/campaigns", cta: "Criar" },
-    ]);
+    ] : [];
+
+    setSteps([...core, ...outreach]);
     setLoaded(true);
-  }, [activeOrg]);
+  }, [activeOrg, outreachOn]);
 
   useEffect(() => {
     if (dismissKey) setDismissed(localStorage.getItem(dismissKey) === "1");
     load();
   }, [load, dismissKey]);
 
-  if (!isEnabled("module_outreach") || !loaded || dismissed) return null;
+  if (!isAdmin || !loaded || dismissed) return null;
   const doneCount = steps.filter((s) => s.done).length;
   if (doneCount === steps.length) return null; // tudo feito → não incomodar
 
