@@ -129,12 +129,50 @@ const STEPS = [
 ];
 
 const FAQS = [
-  { q: "É preciso cartão para o trial?", a: "Não. O trial de 14 dias é totalmente gratuito e não pede dados de pagamento." },
-  { q: "Posso mudar de plano quando quiser?", a: "Sim. Pode fazer upgrade ou downgrade a qualquer momento dentro da aplicação." },
-  { q: "É seguro e multi-empresa?", a: "Sim. A arquitetura é multi-tenant com isolamento por organização, RLS e papéis granulares." },
-  { q: "Que integrações suporta?", a: "Suportamos conectores para loja online, faturação e pagamentos — cada organização liga as suas próprias contas." },
-  { q: "Como funcionam as comissões?", a: "Cria regras configuráveis por comercial, produto ou cliente; o cálculo mensal é automático." },
-  { q: "Posso cancelar a qualquer momento?", a: "Sim. Não há permanência — cancela quando quiser, diretamente na área de plano." },
+  {
+    q: "Preciso de cartão de crédito para experimentar?",
+    a: "Não. O trial de 14 dias dá acesso a todas as funcionalidades e não pede dados de pagamento em momento nenhum.",
+  },
+  {
+    q: "Consigo importar os meus clientes e encomendas de um sistema atual?",
+    a: "Sim. Tem importação em massa por ficheiro (Excel/CSV) para clientes, produtos e histórico de encomendas, com mapeamento de colunas e deteção de duplicados.",
+  },
+  {
+    q: "As faturas emitidas são válidas para a Autoridade Tributária?",
+    a: "Sim, ligando o conector de faturação certificada (Moloni). Escolhe se a emissão é manual ou automática (ao confirmar a encomenda ou ao receber o pagamento).",
+  },
+  {
+    q: "Como recebo pagamentos e processo reembolsos?",
+    a: "Através do Stripe: gera um link de pagamento por encomenda e aceita cartão. Quando regista uma devolução, o reembolso ao método original (ou à carteira do cliente) fica a um clique.",
+  },
+  {
+    q: "Consigo contactar leads por WhatsApp e Email a partir da plataforma?",
+    a: "Sim, no módulo de Outreach: campanhas com sequências multi-toque, testes A/B e uma Inbox unificada para responder às conversas — tudo ligado à ficha do cliente.",
+  },
+  {
+    q: "Os agentes de IA usam os meus dados para treinar modelos de terceiros?",
+    a: "Os agentes respondem com base no conhecimento da sua própria organização, isolado por organização na base de dados. Consulte a nossa Política de Privacidade para os detalhes dos subprocessadores de IA utilizados.",
+  },
+  {
+    q: "É seguro e preparado para múltiplas empresas?",
+    a: "Sim. Arquitetura multi-tenant com isolamento por organização ao nível da base de dados (RLS), papéis granulares (owner, admin, diretor, comercial, leitura) e pode gerir várias organizações com a mesma conta.",
+  },
+  {
+    q: "Como funcionam as comissões dos comerciais?",
+    a: "Cria regras configuráveis por comercial, produto ou categoria, com prioridades entre regras; o valor é calculado automaticamente a partir das encomendas faturadas — sem folhas de cálculo.",
+  },
+  {
+    q: "Funciona bem no telemóvel e tablet?",
+    a: "Sim. A plataforma foi desenhada mobile-first — tabelas, formulários e menus adaptam-se a qualquer ecrã.",
+  },
+  {
+    q: "Que apoio tenho se precisar de ajuda?",
+    a: "Suporte por email em todos os planos pagos, com prioridade nos planos superiores; o plano Enterprise inclui onboarding dedicado.",
+  },
+  {
+    q: "Posso cancelar a qualquer momento? O que acontece aos meus dados?",
+    a: "Sim, sem permanência — cancela diretamente na área de plano. Pode exportar os seus dados a qualquer momento e pedir a eliminação da conta; o pedido é processado no prazo máximo de 30 dias (RGPD).",
+  },
 ];
 
 function formatPrice(plan: PublicPlan) {
