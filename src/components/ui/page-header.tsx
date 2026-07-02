@@ -26,7 +26,7 @@ export function PageHeader({ title, description, icon, actions, className }: Pag
         ) : null}
       </div>
       {actions ? (
-        <div className="flex items-center gap-2 flex-wrap shrink-0">{actions}</div>
+        <div className="flex items-center gap-2 flex-wrap shrink-0" data-tour="page-actions">{actions}</div>
       ) : null}
     </div>
   );

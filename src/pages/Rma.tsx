@@ -176,6 +176,7 @@ export default function RmaPage() {
         ) : null}
       />
 
+      <div data-tour="rma-board">
       {loading ? (
         <Skeleton className="h-64" />
       ) : items.length === 0 ? (
@@ -261,6 +262,7 @@ export default function RmaPage() {
           ))}
         </div>
       )}
+      </div>
 
       <RmaFormDialog
         open={dialogOpen}

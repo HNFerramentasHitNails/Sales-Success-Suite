@@ -192,10 +192,14 @@ export default function Prospects() {
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight">Prospecção</h1>
-        {canWrite && <Button onClick={openNew}><Plus className="h-4 w-4 mr-1" /> Novo prospect</Button>}
+        {canWrite && (
+          <div data-tour="page-actions">
+            <Button onClick={openNew}><Plus className="h-4 w-4 mr-1" /> Novo prospect</Button>
+          </div>
+        )}
       </div>
 
-      <div className="flex flex-wrap gap-2 items-center">
+      <div className="flex flex-wrap gap-2 items-center" data-tour="prospects-filters">
         <div className="relative flex-1 min-w-[200px] max-w-md">
           <Search className="h-4 w-4 absolute left-2 top-2.5 text-muted-foreground" />
           <Input className="pl-8" placeholder="Pesquisar nome ou empresa…" value={search} onChange={(e) => setSearch(e.target.value)} />
@@ -217,7 +221,7 @@ export default function Prospects() {
       </div>
 
       <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd}>
-        <div className="flex gap-3 overflow-x-auto pb-3">
+        <div className="flex gap-3 overflow-x-auto pb-3" data-tour="prospects-board">
           {STAGES.map((s) => (
             <StageColumn
               key={s.key}

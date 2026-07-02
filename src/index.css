@@ -164,3 +164,25 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* driver.js (tour de boas-vindas) — adapta o popover ao tema escuro da app */
+.dark .driver-popover {
+  background-color: hsl(var(--popover));
+  color: hsl(var(--popover-foreground));
+}
+.dark .driver-popover-title,
+.dark .driver-popover-description {
+  color: hsl(var(--popover-foreground));
+}
+.dark .driver-popover-close-btn {
+  color: hsl(var(--muted-foreground));
+}
+.dark .driver-popover-navigation-btns button {
+  background-color: hsl(var(--secondary));
+  color: hsl(var(--secondary-foreground));
+  text-shadow: none;
+}
+.dark .driver-popover-arrow-side-left.driver-popover-arrow { border-left-color: hsl(var(--popover)); }
+.dark .driver-popover-arrow-side-right.driver-popover-arrow { border-right-color: hsl(var(--popover)); }
+.dark .driver-popover-arrow-side-top.driver-popover-arrow { border-top-color: hsl(var(--popover)); }
+.dark .driver-popover-arrow-side-bottom.driver-popover-arrow { border-bottom-color: hsl(var(--popover)); }

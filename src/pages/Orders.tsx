@@ -310,9 +310,9 @@ export default function Orders() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <h1 className="font-display text-3xl font-bold tracking-tight">Encomendas</h1>
+        <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight">Encomendas</h1>
         {canWrite && (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2" data-tour="page-actions">
             <Button variant="outline" onClick={() => setImportOpen(true)}>
               <Upload className="h-4 w-4 mr-1" /> Importar histórico
             </Button>
@@ -323,7 +323,7 @@ export default function Orders() {
 
       <Card>
         <CardContent className="p-4 space-y-4">
-          <div className="flex flex-wrap gap-2 items-center">
+          <div className="flex flex-wrap gap-2 items-center" data-tour="orders-filters">
             <div className="relative flex-1 min-w-[200px]">
               <Search className="h-4 w-4 absolute left-2 top-2.5 text-muted-foreground" />
               <Input className="pl-8" placeholder="Pesquisar por nº…"
@@ -338,7 +338,7 @@ export default function Orders() {
             </Select>
           </div>
 
-          <Table>
+          <Table data-tour="orders-table">
             <TableHeader>
               <TableRow>
                 <TableHead>Nº</TableHead>
@@ -473,7 +473,7 @@ export default function Orders() {
             </TableBody>
           </Table>
 
-          <div className="flex items-center justify-between text-sm text-muted-foreground">
+          <div className="flex items-center justify-between text-sm text-muted-foreground" data-tour="orders-pagination">
             <span>{count} {count === 1 ? "encomenda" : "encomendas"}</span>
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage((p) => p - 1)}>Anterior</Button>

@@ -56,7 +56,7 @@ export default function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon">
-      <SidebarContent>
+      <SidebarContent data-tour="app-sidebar">
         <div className="flex items-center gap-2 px-3 py-4">
           {activeOrg?.logo_url ? (
             <img src={activeOrg.logo_url} alt={activeOrg.name} className="h-8 w-8 rounded object-cover" />

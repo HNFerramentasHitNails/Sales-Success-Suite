@@ -7,6 +7,7 @@ import AppSidebar from "@/components/layout/AppSidebar";
 import OrgSwitcher from "@/components/layout/OrgSwitcher";
 import UserMenu from "@/components/layout/UserMenu";
 import CommandMenu from "@/components/CommandMenu";
+import OnboardingTour from "@/components/OnboardingTour";
 
 export default function AppLayout() {
   const [cmdOpen, setCmdOpen] = useState(false);
@@ -26,6 +27,7 @@ export default function AppLayout() {
             <Button
               variant="outline"
               size="sm"
+              data-tour="header-search"
               className="text-muted-foreground gap-2 px-2 md:px-3"
               onClick={() => setCmdOpen(true)}
             >
@@ -43,6 +45,7 @@ export default function AppLayout() {
         </div>
       </div>
       <CommandMenu open={cmdOpen} onOpenChange={setCmdOpen} />
+      <OnboardingTour />
     </SidebarProvider>
   );
 }

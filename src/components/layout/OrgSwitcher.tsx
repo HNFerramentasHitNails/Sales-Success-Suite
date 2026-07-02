@@ -16,7 +16,7 @@ export default function OrgSwitcher() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2 px-2 sm:px-3">
+        <Button variant="outline" size="sm" data-tour="header-org-switcher" className="gap-2 px-2 sm:px-3">
           <span className="hidden sm:inline truncate max-w-[160px]">{activeOrg?.name ?? "Organização"}</span>
           <ChevronsUpDown className="h-3 w-3 opacity-50" />
         </Button>

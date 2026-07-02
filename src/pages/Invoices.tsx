@@ -123,7 +123,7 @@ export default function Invoices() {
 
       <Card>
         <CardContent className="p-4 space-y-4">
-          <div className="flex flex-wrap gap-2 items-center">
+          <div className="flex flex-wrap gap-2 items-center" data-tour="invoices-filters">
             <div className="relative flex-1 min-w-[200px]">
               <Search className="h-4 w-4 absolute left-2 top-2.5 text-muted-foreground" />
               <Input className="pl-8" placeholder="Pesquisar por nº de fatura…"
@@ -138,7 +138,7 @@ export default function Invoices() {
             </Select>
           </div>
 
-          <Table>
+          <Table data-tour="invoices-table">
             <TableHeader>
               <TableRow>
                 <TableHead>Nº fatura</TableHead>

@@ -473,12 +473,16 @@ export default function Products() {
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight">Produtos</h1>
-        {canWrite && <Button onClick={openNew}><Plus className="h-4 w-4 mr-1" /> Novo produto</Button>}
+        {canWrite && (
+          <div data-tour="page-actions">
+            <Button onClick={openNew}><Plus className="h-4 w-4 mr-1" /> Novo produto</Button>
+          </div>
+        )}
       </div>
 
       <Card>
         <CardContent className="p-4 space-y-4">
-          <div className="flex flex-wrap gap-2 items-center">
+          <div className="flex flex-wrap gap-2 items-center" data-tour="products-filters">
             <div className="relative flex-1 min-w-[200px]">
               <Search className="h-4 w-4 absolute left-2 top-2.5 text-muted-foreground" />
               <Input className="pl-8" placeholder="Pesquisar por nome ou SKU…"
@@ -500,7 +504,7 @@ export default function Products() {
             </Select>
           </div>
 
-          <Table>
+          <Table data-tour="products-table">
             <TableHeader>
               <TableRow>
                 <TableHead>Nome</TableHead>

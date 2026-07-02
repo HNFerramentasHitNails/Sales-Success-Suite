@@ -398,7 +398,7 @@ export default function Calls() {
       />
 
       {/* KPIs --------------------------------------------------------- */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4" data-tour="calls-kpis">
         <Card className="p-4">
           <div className="text-sm text-muted-foreground">Ticket Médio Previsto</div>
           <div className="text-2xl font-semibold mt-1 tabular-nums">{fmtEUR(kpis.avgTicket)}</div>
@@ -469,7 +469,7 @@ export default function Calls() {
           </Badge>
           <Badge variant="outline">{counts.canceled} excluídos</Badge>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2" data-tour="calls-actions">
           <Button onClick={handleGenerate} disabled={refreshing}>
             <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />
             {refreshing ? "A gerar..." : "Gerar chamadas do dia"}
@@ -481,7 +481,7 @@ export default function Calls() {
       </div>
 
       {/* Filtros --------------------------------------------------- */}
-      <Card className="p-4 flex flex-wrap items-end gap-3">
+      <Card className="p-4 flex flex-wrap items-end gap-3" data-tour="calls-filters">
         <div className="space-y-1">
           <Label className="text-xs">Estado</Label>
           <Select value={statusFilter} onValueChange={setStatusFilter}>

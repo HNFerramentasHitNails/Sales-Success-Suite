@@ -1,4 +1,4 @@
-import { LogOut, User as UserIcon } from "lucide-react";
+import { LogOut, User as UserIcon, Compass } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,7 +17,7 @@ export default function UserMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon">
+        <Button variant="ghost" size="icon" data-tour="header-user-menu">
           <UserIcon className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
@@ -27,6 +27,10 @@ export default function UserMenu() {
         <DropdownMenuItem onClick={() => navigate("/app/profile")}>
           <UserIcon className="h-4 w-4 mr-2" />
           O meu perfil
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => window.dispatchEvent(new Event("app:replay-onboarding-tour"))}>
+          <Compass className="h-4 w-4 mr-2" />
+          Rever tour
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem

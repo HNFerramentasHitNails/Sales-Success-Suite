@@ -225,14 +225,14 @@ export default function Dashboard() {
           <p className="text-sm text-muted-foreground">Visão geral do negócio · {activeOrg?.name}</p>
         </div>
         <Select value={preset} onValueChange={(v) => setPreset(v as Preset)}>
-          <SelectTrigger className="w-56"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-56" data-tour="dash-preset"><SelectValue /></SelectTrigger>
           <SelectContent>
             {PRESETS.map((p) => <SelectItem key={p.v} value={p.v}>{p.l}</SelectItem>)}
           </SelectContent>
         </Select>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3" data-tour="dash-kpis">
         {kpis.map((k) => (
           <Card key={k.l}>
             <CardContent className="p-4 space-y-1">
@@ -248,7 +248,7 @@ export default function Dashboard() {
 
       <DashboardObjectives />
 
-      <Card>
+      <Card data-tour="dash-nudges">
         <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
           <CardTitle>Sugestões do dia</CardTitle>
           <Button variant="outline" size="sm" onClick={refreshNudges} disabled={nudgesLoading}>
@@ -307,7 +307,7 @@ export default function Dashboard() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card data-tour="dash-evolution">
         <CardHeader><CardTitle>Evolução mensal</CardTitle></CardHeader>
         <CardContent>
           {evolution.length === 0 || noEvolution ? (
@@ -331,7 +331,7 @@ export default function Dashboard() {
       </Card>
 
       <div className="grid lg:grid-cols-2 gap-4">
-        <Card>
+        <Card data-tour="dash-top-customers">
           <CardHeader><CardTitle>Top clientes</CardTitle></CardHeader>
           <CardContent>
             {topCustomers.length === 0 ? (
@@ -359,7 +359,7 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card data-tour="dash-top-products">
           <CardHeader><CardTitle>Top produtos (ABC / Pareto)</CardTitle></CardHeader>
           <CardContent>
             {topProducts.length === 0 ? (
@@ -402,7 +402,7 @@ export default function Dashboard() {
       </div>
 
       {canSeeTeam && (
-        <Card>
+        <Card data-tour="dash-team">
           <CardHeader><CardTitle>Ranking da equipa</CardTitle></CardHeader>
           <CardContent>
             {team.length === 0 ? (
