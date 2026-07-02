@@ -20,8 +20,8 @@ export const GROUPS: NavGroup[] = [
     { title: "Inbox", url: "/app/inbox", icon: Inbox, feature: "module_outreach" },
     { title: "Leads", url: "/app/leads", icon: Filter, feature: "module_outreach" },
     { title: "Marketplace de leads", url: "/app/marketplace", icon: Store, feature: "module_outreach" },
-    { title: "Campanhas", url: "/app/campaigns", icon: Send, feature: "module_outreach" },
     { title: "Templates", url: "/app/templates", icon: FileText, feature: "module_outreach" },
+    { title: "Campanhas", url: "/app/campaigns", icon: Send, feature: "module_outreach" },
   ]},
   { label: "Clientes & Vendas", gate: "all", items: [
     { title: "Clientes", url: "/app/customers", icon: Users },
