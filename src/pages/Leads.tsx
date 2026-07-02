@@ -285,7 +285,7 @@ export default function Leads() {
       />
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3" data-tour="leads-kpis">
         {[
           { label: "Total", value: kpis.total },
           { label: "Com WhatsApp", value: kpis.whatsapp },
@@ -303,7 +303,7 @@ export default function Leads() {
       </div>
 
       {/* filtros */}
-      <div className="flex flex-wrap gap-2 items-center">
+      <div className="flex flex-wrap gap-2 items-center" data-tour="leads-filters">
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input className="pl-8" placeholder="Procurar nome, email, empresa…" value={search} onChange={(e) => setSearch(e.target.value)} />
@@ -329,7 +329,7 @@ export default function Leads() {
       {/* tabela */}
       <Card>
         <CardContent className="p-0">
-          <Table>
+          <Table data-tour="leads-table">
             <TableHeader>
               <TableRow>
                 <TableHead>Nome</TableHead>

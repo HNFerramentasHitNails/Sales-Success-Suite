@@ -311,7 +311,7 @@ export default function CustomerTags() {
         description="Organize as etiquetas em hierarquia e crie regras para atribuir automaticamente etiquetas a clientes."
       />
 
-      <Card className="p-5">
+      <Card className="p-5" data-tour="customer-tags-tree">
         <div className="flex items-center justify-between mb-3">
           <div>
             <h2 className="font-semibold">Árvore de etiquetas</h2>
@@ -331,7 +331,7 @@ export default function CustomerTags() {
         )}
       </Card>
 
-      <Card className="p-5">
+      <Card className="p-5" data-tour="customer-tags-rules">
         <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
           <div>
             <h2 className="font-semibold">Regras de upgrade</h2>

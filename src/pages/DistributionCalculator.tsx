@@ -308,7 +308,7 @@ export default function DistributionCalculator() {
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Inputs */}
-        <Card className="p-5 space-y-5">
+        <Card className="p-5 space-y-5" data-tour="distribution-calculator-form">
           <div>
             <Label className="mb-2 block">Origem do preço</Label>
             <Tabs value={priceMode} onValueChange={(v) => setPriceMode(v as any)}>
@@ -485,7 +485,7 @@ export default function DistributionCalculator() {
         </Card>
 
         {/* Results */}
-        <Card className="p-5 space-y-4">
+        <Card className="p-5 space-y-4" data-tour="distribution-calculator-results">
           <h3 className="font-semibold text-lg">Resultados</h3>
           {!hasPrice ? (
             <EmptyState
@@ -548,7 +548,7 @@ export default function DistributionCalculator() {
 
       {/* Tiers management */}
       {canManage && (
-        <Card className="p-5 space-y-4">
+        <Card className="p-5 space-y-4" data-tour="distribution-calculator-tiers">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="font-semibold text-lg">Escalões de volume</h3>

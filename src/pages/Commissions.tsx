@@ -429,7 +429,7 @@ export default function Commissions() {
       </div>
 
       <Tabs defaultValue="resumo">
-        <TabsList>
+        <TabsList data-tour="commissions-tabs">
           <TabsTrigger value="resumo">Resumo</TabsTrigger>
           <TabsTrigger value="por-produto">Por produto</TabsTrigger>
           <TabsTrigger value="extratos">Extratos</TabsTrigger>
@@ -449,7 +449,7 @@ export default function Commissions() {
                 </Select>
               </div>
 
-              <Table>
+              <Table data-tour="commissions-resumo-table">
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-8"></TableHead>
@@ -632,7 +632,7 @@ export default function Commissions() {
                 )}
               </div>
 
-              <Table>
+              <Table data-tour="commissions-extratos-table">
                 <TableHeader>
                   <TableRow>
                     <TableHead>Comercial</TableHead>

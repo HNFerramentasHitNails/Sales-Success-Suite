@@ -179,7 +179,7 @@ export default function Templates() {
         actions={canWrite && <Button onClick={openNew}><Plus className="h-4 w-4 mr-2" /> Novo Template</Button>}
       />
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3" data-tour="templates-kpis">
         {[
           { label: "Templates", value: kpis.total },
           { label: "Variações Email", value: kpis.email },
@@ -192,7 +192,7 @@ export default function Templates() {
 
       <Card>
         <CardContent className="p-0">
-          <Table>
+          <Table data-tour="templates-table">
             <TableHeader>
               <TableRow>
                 <TableHead>Nome</TableHead>

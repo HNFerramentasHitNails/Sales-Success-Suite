@@ -34,7 +34,7 @@ export default function SettingsHub() {
         icon={<SettingsIcon className="h-6 w-6" />}
       />
       <Tabs value={tab} onValueChange={(v) => setSp({ tab: v })}>
-        <TabsList className="flex-wrap h-auto justify-start">
+        <TabsList className="flex-wrap h-auto justify-start" data-tour="settings-tabs">
           {TABS.map((t) => <TabsTrigger key={t.k} value={t.k}>{t.label}</TabsTrigger>)}
         </TabsList>
         {TABS.map((t) => {

@@ -272,7 +272,7 @@ export default function Subscriptions() {
         actions={<Button onClick={openNew}><Plus className="h-4 w-4 mr-1" /> Nova subscrição</Button>}
       />
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3" data-tour="subscriptions-filters">
         <Label className="text-xs text-muted-foreground">Estado</Label>
         <Select value={filterStatus} onValueChange={setFilterStatus}>
           <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
@@ -285,6 +285,7 @@ export default function Subscriptions() {
         </Select>
       </div>
 
+      <div data-tour="subscriptions-board">
       {loading ? (
         <div className="space-y-2">{[0, 1, 2].map((i) => <Skeleton key={i} className="h-20 w-full" />)}</div>
       ) : filtered.length === 0 ? (
@@ -354,6 +355,7 @@ export default function Subscriptions() {
           })}
         </div>
       )}
+      </div>
 
       {/* Dialog criar/editar */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

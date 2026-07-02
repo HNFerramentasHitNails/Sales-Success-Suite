@@ -99,7 +99,7 @@ export default function Reconciliation() {
       />
 
       {/* KPIs de margem e inventário */}
-      <div className="grid gap-3 md:grid-cols-4">
+      <div className="grid gap-3 md:grid-cols-4" data-tour="reconciliation-kpis">
         <Card>
           <CardHeader className="pb-2 flex-row items-center justify-between">
             <CardTitle className="text-sm font-medium text-muted-foreground">Margem</CardTitle>
@@ -153,7 +153,7 @@ export default function Reconciliation() {
             ) : null)}
           </div>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent className="p-0" data-tour="reconciliation-exceptions">
           {loading ? (
             <div className="text-center py-12"><Loader2 className="h-5 w-5 animate-spin inline" /></div>
           ) : sorted.length === 0 ? (

@@ -254,7 +254,7 @@ export default function DistributionAnalytics() {
       />
 
       {/* KPIs */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" data-tour="distribution-analytics-kpis">
         <KpiCard icon={<Store className="h-4 w-4" />} label="Total de parceiros" value={totalPartners} />
         <KpiCard
           icon={<Store className="h-4 w-4" />}
@@ -326,7 +326,7 @@ export default function DistributionAnalytics() {
         </Card>
       </div>
 
-      <Card>
+      <Card data-tour="distribution-analytics-region">
         <CardHeader>
           <CardTitle className="text-base">Cobertura por região</CardTitle>
         </CardHeader>
@@ -416,7 +416,7 @@ export default function DistributionAnalytics() {
         </Card>
       </div>
 
-      <Card>
+      <Card data-tour="distribution-analytics-top">
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <TrendingUp className="h-4 w-4" /> Top parceiros por receita

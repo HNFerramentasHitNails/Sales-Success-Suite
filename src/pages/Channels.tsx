@@ -54,7 +54,7 @@ export default function Channels() {
         </div>
       </div>
       {canWrite && (
-        <Card><CardContent className="p-4 flex gap-2 items-end">
+        <Card data-tour="page-actions"><CardContent className="p-4 flex gap-2 items-end">
           <div className="flex-1 max-w-sm">
             <Input placeholder="Nome do canal (ex.: Loja Online, Marketplace)" value={name} onChange={(e) => setName(e.target.value)} maxLength={80} />
           </div>
@@ -62,7 +62,7 @@ export default function Channels() {
         </CardContent></Card>
       )}
       <Card><CardContent className="p-4">
-        <Table>
+        <Table data-tour="channels-table">
           <TableHeader><TableRow><TableHead>Canal</TableHead><TableHead className="w-32">Ativo</TableHead><TableHead className="w-20"></TableHead></TableRow></TableHeader>
           <TableBody>
             {rows.length === 0 && <TableRow><TableCell colSpan={3} className="text-center py-8 text-muted-foreground">Sem canais.</TableCell></TableRow>}

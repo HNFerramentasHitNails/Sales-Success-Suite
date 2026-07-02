@@ -136,7 +136,7 @@ export default function Marketplace() {
         icon={<Store className="h-6 w-6" />}
       />
 
-      <Card>
+      <Card data-tour="marketplace-search">
         <CardContent className="p-4 grid md:grid-cols-3 gap-3">
           <div className="grid gap-1.5">
             <Label>Categoria</Label>
@@ -197,7 +197,7 @@ export default function Marketplace() {
       {!canWrite && <Alert><AlertDescription>Sem permissão para importar leads.</AlertDescription></Alert>}
 
       {results.length > 0 && (
-        <Card>
+        <Card data-tour="marketplace-results">
           <CardContent className="p-0">
             <div className="flex items-center justify-between p-3 border-b">
               <div className="text-sm text-muted-foreground">{sel.size} de {results.length} selecionados</div>

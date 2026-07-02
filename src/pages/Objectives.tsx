@@ -115,7 +115,7 @@ export default function Objectives() {
           <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight">Objetivos</h1>
           <p className="text-sm text-muted-foreground">Metas de vendas anuais e mensais · {activeOrg?.name}</p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2" data-tour="objectives-filters">
           <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
             <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
             <SelectContent>{years.map((y) => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
@@ -137,7 +137,7 @@ export default function Objectives() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3" data-tour="objectives-kpis">
         <Card><CardContent className="p-4 space-y-1"><div className="text-xs uppercase tracking-wide text-muted-foreground">Meta anual</div><div className="font-display text-2xl font-semibold">{fmtFull(ytdTarget)}</div></CardContent></Card>
         <Card><CardContent className="p-4 space-y-1"><div className="text-xs uppercase tracking-wide text-muted-foreground">Realizado ({year})</div><div className="font-display text-2xl font-semibold">{fmtFull(ytdActual)}</div></CardContent></Card>
         <Card><CardContent className="p-4 space-y-1"><div className="text-xs uppercase tracking-wide text-muted-foreground">Cumprimento</div><div className="font-display text-2xl font-semibold">{ytdTarget > 0 ? fmtPct(pct) : "—"}</div></CardContent></Card>
@@ -145,7 +145,7 @@ export default function Objectives() {
       </div>
 
       {canEdit && (
-        <Card>
+        <Card data-tour="objectives-targets">
           <CardHeader><CardTitle>Definir metas</CardTitle></CardHeader>
           <CardContent className="space-y-4">
             <div className="flex flex-wrap items-end gap-3">
@@ -173,7 +173,7 @@ export default function Objectives() {
         </Card>
       )}
 
-      <Card>
+      <Card data-tour="objectives-chart">
         <CardHeader><CardTitle>Meta vs Realizado · {year}</CardTitle></CardHeader>
         <CardContent>
           <div className="h-80">

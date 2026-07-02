@@ -185,6 +185,7 @@ export default function AiKnowledge() {
         }
       />
 
+      <div data-tour="knowledge-list">
       {loading ? (
         <div className="flex items-center gap-2 text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" /> A carregar…
@@ -242,6 +243,7 @@ export default function AiKnowledge() {
           ))}
         </div>
       )}
+      </div>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-2xl">

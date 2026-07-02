@@ -450,7 +450,7 @@ export default function DistributionPartners() {
         }
       />
 
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-wrap gap-3" data-tour="distribution-partners-filters">
         <div className="min-w-[160px]">
           <Select value={fStatus} onValueChange={setFStatus}>
             <SelectTrigger>
@@ -490,6 +490,7 @@ export default function DistributionPartners() {
         </div>
       </div>
 
+      <div data-tour="distribution-partners-list">
       {loading ? (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
           {[0, 1, 2].map((i) => (
@@ -536,6 +537,7 @@ export default function DistributionPartners() {
           ))}
         </div>
       )}
+      </div>
 
       {/* ============ Partner form dialog ============ */}
       <Dialog open={partnerDlg} onOpenChange={setPartnerDlg}>

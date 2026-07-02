@@ -321,7 +321,7 @@ export default function Vouchers() {
         }
       />
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3" data-tour="vouchers-filters">
         <Label className="text-xs text-muted-foreground">Estado</Label>
         <Select value={filterStatus} onValueChange={setFilterStatus}>
           <SelectTrigger className="w-44">
@@ -337,6 +337,7 @@ export default function Vouchers() {
         </Select>
       </div>
 
+      <div data-tour="vouchers-list">
       {loading ? (
         <div className="space-y-2">
           {[0, 1, 2].map((i) => (
@@ -415,6 +416,7 @@ export default function Vouchers() {
           })}
         </div>
       )}
+      </div>
 
       {/* New voucher dialog */}
       <Dialog open={newOpen} onOpenChange={setNewOpen}>

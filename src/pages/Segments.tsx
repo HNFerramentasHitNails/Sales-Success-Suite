@@ -172,7 +172,7 @@ export default function Segments() {
             Regras configuráveis que classificam automaticamente os clientes por Recência, Frequência e valor Monetário.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2" data-tour="page-actions">
           {rows.length === 0 && (
             <Button variant="outline" onClick={seedPresets} disabled={busy}>
               <Sparkles className="h-4 w-4 mr-1" /> Criar predefinidos
@@ -187,7 +187,7 @@ export default function Segments() {
 
       <Card>
         <CardContent className="p-4">
-          <Table>
+          <Table data-tour="segments-table">
             <TableHeader>
               <TableRow>
                 <TableHead className="w-16">Ordem</TableHead>

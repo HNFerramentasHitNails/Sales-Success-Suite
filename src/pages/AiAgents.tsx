@@ -124,7 +124,7 @@ export default function AiAgents() {
       />
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as AgentType)}>
-        <TabsList className="grid w-full grid-cols-3 max-w-xl">
+        <TabsList className="grid w-full grid-cols-3 max-w-xl" data-tour="agents-tabs">
           {AGENTS.map((a) => (
             <TabsTrigger key={a.id} value={a.id} className="flex items-center gap-2">
               <a.icon className="h-4 w-4" />
@@ -409,7 +409,7 @@ function AgentWorkspace({ agent, orgId, canManageAi, active, initialPrompt, onPr
 
   return (
     <>
-      <div className="grid gap-4 md:grid-cols-[260px_1fr]">
+      <div className="grid gap-4 md:grid-cols-[260px_1fr]" data-tour="agents-workspace">
         {/* Lista de conversas */}
         <Card className="h-fit md:sticky md:top-4">
           <CardContent className="p-3 space-y-2">

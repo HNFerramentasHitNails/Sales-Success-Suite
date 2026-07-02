@@ -98,7 +98,7 @@ export default function Inbox() {
     <div className="space-y-4">
       <PageHeader title="Inbox" description="Conversas de WhatsApp com os teus leads." icon={<InboxIcon className="h-6 w-6" />} />
 
-      <Card className="grid grid-cols-1 md:grid-cols-[320px_1fr] overflow-hidden" style={{ height: "calc(100vh - 230px)" }}>
+      <Card className="grid grid-cols-1 md:grid-cols-[320px_1fr] overflow-hidden" style={{ height: "calc(100vh - 230px)" }} data-tour="inbox-board">
         {/* Lista de conversas */}
         <div className="border-r overflow-y-auto">
           {loading ? (

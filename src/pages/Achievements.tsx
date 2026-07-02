@@ -316,7 +316,7 @@ export default function Achievements() {
 
       {/* Leaderboard */}
       {canSeeRanking && (
-        <section className="space-y-3">
+        <section className="space-y-3" data-tour="achievements-ranking">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold flex items-center gap-2">
               <Medal className="h-5 w-5 text-primary" /> Ranking
@@ -379,6 +379,7 @@ export default function Achievements() {
         <h2 className="text-lg font-semibold flex items-center gap-2">
           <Trophy className="h-5 w-5 text-primary" /> Conquistas
         </h2>
+        <div data-tour="achievements-grid">
         {loading ? (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
             {[0, 1, 2].map((i) => (
@@ -463,6 +464,7 @@ export default function Achievements() {
             })}
           </div>
         )}
+        </div>
       </section>
 
       <Dialog open={dlgOpen} onOpenChange={setDlgOpen}>

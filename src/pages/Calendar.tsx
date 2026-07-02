@@ -239,7 +239,7 @@ export default function CalendarPage() {
 
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
         <div className="space-y-4">
-          <Card className="p-4 flex flex-wrap items-center gap-4">
+          <Card className="p-4 flex flex-wrap items-center gap-4" data-tour="calendar-filters">
             <div className="flex items-center gap-2">
               <Label>Tipo</Label>
               <Select value={typeFilter} onValueChange={setTypeFilter}>
@@ -291,6 +291,7 @@ export default function CalendarPage() {
             )}
           </Card>
 
+          <div data-tour="calendar-board">
           {loading ? (
             <div className="space-y-2">
               {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-20 w-full" />)}
@@ -388,9 +389,10 @@ export default function CalendarPage() {
               ))}
             </div>
           )}
+          </div>
         </div>
 
-        <Card className="p-3 h-fit">
+        <Card className="p-3 h-fit" data-tour="calendar-mini">
           <Calendar
             mode="single"
             selected={selectedDay}

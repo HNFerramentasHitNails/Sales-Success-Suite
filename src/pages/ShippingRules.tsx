@@ -111,6 +111,7 @@ export default function ShippingRules() {
 
       <Card>
         <CardContent className="p-0">
+          <div data-tour="shipping-table">
           {loading ? (
             <div className="text-center py-10"><Loader2 className="h-5 w-5 animate-spin inline" /></div>
           ) : rules.length === 0 ? (
@@ -154,6 +155,7 @@ export default function ShippingRules() {
               </TableBody>
             </Table>
           )}
+          </div>
         </CardContent>
       </Card>
 

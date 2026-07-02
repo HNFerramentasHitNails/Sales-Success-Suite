@@ -168,7 +168,7 @@ export default function Pricing() {
       </div>
 
       <Tabs defaultValue="groups">
-        <TabsList>
+        <TabsList data-tour="pricing-tabs">
           <TabsTrigger value="groups">Grupos de produto</TabsTrigger>
           <TabsTrigger value="classes">Classes de cliente</TabsTrigger>
           <TabsTrigger value="matrix">Matriz de descontos</TabsTrigger>
@@ -181,7 +181,7 @@ export default function Pricing() {
             <Button onClick={() => setGroupDlg({ open: true, row: null })}><Plus className="h-4 w-4 mr-1" />Novo grupo</Button>
           </div>
           <Card><CardContent className="p-0">
-            <Table>
+            <Table data-tour="pricing-groups-table">
               <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>Código</TableHead><TableHead className="w-24">Ordem</TableHead><TableHead className="w-32 text-right">Ações</TableHead></TableRow></TableHeader>
               <TableBody>
                 {groups.length === 0 && <TableRow><TableCell colSpan={4} className="text-center text-sm text-muted-foreground py-6">Sem grupos.</TableCell></TableRow>}

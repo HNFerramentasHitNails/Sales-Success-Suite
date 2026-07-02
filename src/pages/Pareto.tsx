@@ -157,7 +157,7 @@ export default function Pareto() {
           <h1 className="text-2xl font-semibold">Análise de Pareto</h1>
           <p className="text-sm text-muted-foreground">Regra 80/20 aplicada a clientes ou produtos</p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2" data-tour="pareto-filters">
           <Tabs value={mode} onValueChange={(v) => setMode(v as Mode)}>
             <TabsList>
               <TabsTrigger value="customers">Clientes</TabsTrigger>
@@ -175,7 +175,7 @@ export default function Pareto() {
         </div>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-3" data-tour="pareto-kpis">
         <Card><CardHeader className="pb-1"><CardTitle className="text-xs text-muted-foreground">Total</CardTitle></CardHeader>
           <CardContent className="text-xl font-semibold">{fmtMoney(totals.total, currency)}</CardContent></Card>
         <Card><CardHeader className="pb-1"><CardTitle className="text-xs text-muted-foreground">Itens classe A</CardTitle></CardHeader>
@@ -188,7 +188,7 @@ export default function Pareto() {
 
       <Card>
         <CardHeader><CardTitle className="text-base">Curva de Pareto (top 25)</CardTitle></CardHeader>
-        <CardContent className="h-[360px]">
+        <CardContent className="h-[360px]" data-tour="pareto-chart">
           {loading ? (
             <div className="h-full flex items-center justify-center text-sm text-muted-foreground">A carregar…</div>
           ) : chartData.length === 0 ? (
@@ -214,7 +214,7 @@ export default function Pareto() {
 
       <Card>
         <CardHeader><CardTitle className="text-base">Detalhe</CardTitle></CardHeader>
-        <CardContent className="p-0">
+        <CardContent className="p-0" data-tour="pareto-table">
           {loading ? (
             <div className="p-6 text-sm text-muted-foreground">A carregar…</div>
           ) : rows.length === 0 ? (

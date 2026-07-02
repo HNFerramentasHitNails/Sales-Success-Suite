@@ -262,6 +262,7 @@ export default function WalletCampaigns() {
         Cada campanha credita no máximo uma vez por encomenda.
       </Card>
 
+      <div data-tour="wallet-campaigns-list">
       {loading ? (
         <div className="space-y-2">
           {[0, 1, 2].map((i) => (
@@ -329,6 +330,7 @@ export default function WalletCampaigns() {
           ))}
         </div>
       )}
+      </div>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-2xl">

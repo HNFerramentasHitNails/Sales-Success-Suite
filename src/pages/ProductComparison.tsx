@@ -191,7 +191,7 @@ export default function ProductComparison() {
         </div>
       </header>
 
-      <Card>
+      <Card data-tour="product-comparison-search">
         <CardHeader><CardTitle className="text-base">Adicionar produto</CardTitle></CardHeader>
         <CardContent className="space-y-2">
           <div className="relative">
@@ -244,7 +244,7 @@ export default function ProductComparison() {
             </div>
           )}
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent className="p-0" data-tour="product-comparison-table">
           {selected.length === 0 ? (
             <div className="p-6 text-sm text-muted-foreground">
               Adiciona produtos acima para começar a comparar.
@@ -287,7 +287,7 @@ export default function ProductComparison() {
       </Card>
 
       {selected.length > 0 && (
-        <Card>
+        <Card data-tour="product-comparison-chart">
           <CardHeader><CardTitle className="text-base">Gráfico — {metricLabel}</CardTitle></CardHeader>
           <CardContent className="h-[340px]">
             <ResponsiveContainer width="100%" height="100%">

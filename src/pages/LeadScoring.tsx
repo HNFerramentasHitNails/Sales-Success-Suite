@@ -156,11 +156,12 @@ export default function LeadScoring() {
         <LeadScoreBadge score={85} showLabel />
       </div>
 
+      <div data-tour="lead-scoring-config">
       {loading ? (
         <Skeleton className="h-96 w-full" />
       ) : (
         <div className="grid gap-6 lg:grid-cols-2">
-          <Card className="p-5 space-y-4">
+          <Card className="p-5 space-y-4" data-tour="lead-scoring-stages">
             <div className="flex items-center justify-between">
               <div>
                 <div className="font-semibold">Estado do scoring</div>
@@ -187,7 +188,7 @@ export default function LeadScoring() {
             </div>
           </Card>
 
-          <Card className="p-5 space-y-4">
+          <Card className="p-5 space-y-4" data-tour="lead-scoring-tiers">
             <div>
               <div className="font-semibold mb-2">Escalões por valor estimado (€)</div>
               <div className="text-sm text-muted-foreground mb-3">
@@ -258,6 +259,7 @@ export default function LeadScoring() {
           </Card>
         </div>
       )}
+      </div>
     </div>
   );
 }

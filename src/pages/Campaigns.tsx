@@ -233,7 +233,7 @@ export default function Campaigns() {
         actions={canWrite && <Button onClick={openWizard}><Plus className="h-4 w-4 mr-2" /> Nova Campanha</Button>}
       />
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3" data-tour="campaigns-kpis">
         {[
           { label: "Total", value: kpis.total },
           { label: "A correr", value: kpis.running },
@@ -246,7 +246,7 @@ export default function Campaigns() {
 
       <Card>
         <CardContent className="p-0">
-          <Table>
+          <Table data-tour="campaigns-table">
             <TableHeader>
               <TableRow>
                 <TableHead>Nome</TableHead>

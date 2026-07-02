@@ -269,6 +269,7 @@ export default function Integrations() {
         <p className="text-sm text-muted-foreground">Liga as ferramentas externas que a tua organização utiliza.</p>
       </div>
 
+      <div data-tour="integrations-list">
       {loading ? (
         <p className="text-sm text-muted-foreground">A carregar…</p>
       ) : (
@@ -347,7 +348,7 @@ export default function Integrations() {
             </section>
           ))}
 
-          <Card>
+          <Card data-tour="integrations-webhook">
             <CardHeader>
               <CardTitle>Webhook de entrada</CardTitle>
               <CardDescription>URL público para recebimento de eventos de sistemas externos.</CardDescription>
@@ -381,7 +382,7 @@ export default function Integrations() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card data-tour="integrations-logs">
             <CardHeader>
               <CardTitle>Registos de sincronização</CardTitle>
               <CardDescription>Últimos 50 eventos.</CardDescription>
@@ -423,6 +424,7 @@ export default function Integrations() {
           </Card>
         </div>
       )}
+      </div>
 
       <Dialog open={!!dialogDef} onOpenChange={(o) => { if (!o) { setDialogDef(null); setDialogConn(null); } }}>
         <DialogContent>

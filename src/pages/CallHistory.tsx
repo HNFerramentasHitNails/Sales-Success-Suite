@@ -135,7 +135,7 @@ export default function CallHistory() {
         description="Consulta o histórico de chamadas da organização."
       />
 
-      <Card className="p-4 grid grid-cols-1 md:grid-cols-5 gap-3">
+      <Card className="p-4 grid grid-cols-1 md:grid-cols-5 gap-3" data-tour="call-history-filters">
         <div className="space-y-1">
           <Label>De</Label>
           <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
@@ -174,6 +174,7 @@ export default function CallHistory() {
         </div>
       </Card>
 
+      <div data-tour="call-history-table">
       {loading ? (
         <div className="space-y-2">
           {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
@@ -224,6 +225,7 @@ export default function CallHistory() {
           </Table>
         </Card>
       )}
+      </div>
     </div>
   );
 }

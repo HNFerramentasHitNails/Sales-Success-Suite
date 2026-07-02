@@ -167,11 +167,12 @@ export default function LeadAssignment() {
         }
       />
 
+      <div data-tour="lead-assignment-config">
       {loading ? (
         <Skeleton className="h-96 w-full" />
       ) : (
         <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
-          <Card className="p-5 space-y-4">
+          <Card className="p-5 space-y-4" data-tour="lead-assignment-pool">
             <div className="flex items-center justify-between">
               <div>
                 <div className="font-semibold">Atribuição automática (round-robin)</div>
@@ -218,7 +219,7 @@ export default function LeadAssignment() {
             </div>
           </Card>
 
-          <Card className="p-5 space-y-3 h-fit">
+          <Card className="p-5 space-y-3 h-fit" data-tour="lead-assignment-status">
             <div className="flex items-center gap-2 text-sm font-semibold">
               <Info className="h-4 w-4" /> Estado da rotação
             </div>
@@ -237,6 +238,7 @@ export default function LeadAssignment() {
           </Card>
         </div>
       )}
+      </div>
     </div>
   );
 }

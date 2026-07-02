@@ -129,7 +129,7 @@ export default function Issues() {
         ) : null}
       />
 
-      <div className="flex gap-3 flex-wrap">
+      <div className="flex gap-3 flex-wrap" data-tour="issues-filters">
         <div className="min-w-[180px]">
           <Select value={filterPriority} onValueChange={setFilterPriority}>
             <SelectTrigger><SelectValue placeholder="Prioridade" /></SelectTrigger>
@@ -150,6 +150,7 @@ export default function Issues() {
         </div>
       </div>
 
+      <div data-tour="issues-board">
       {loading ? (
         <Skeleton className="h-64" />
       ) : filtered.length === 0 ? (
@@ -210,6 +211,7 @@ export default function Issues() {
           ))}
         </div>
       )}
+      </div>
 
       <IssueFormDialog
         open={dialogOpen}
