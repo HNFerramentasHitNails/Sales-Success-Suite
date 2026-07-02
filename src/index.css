@@ -186,3 +186,23 @@
 .dark .driver-popover-arrow-side-right.driver-popover-arrow { border-right-color: hsl(var(--popover)); }
 .dark .driver-popover-arrow-side-top.driver-popover-arrow { border-top-color: hsl(var(--popover)); }
 .dark .driver-popover-arrow-side-bottom.driver-popover-arrow { border-bottom-color: hsl(var(--popover)); }
+
+/* Landing page — texturas e efeitos premium (usados em src/pages/Landing.tsx) */
+html { scroll-behavior: smooth; }
+
+.bg-dot-grid {
+  background-image: radial-gradient(hsl(var(--foreground) / 0.14) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+.animate-pulse-glow { animation: pulse-glow 3.5s ease-in-out infinite; }
+
+@keyframes float-slow {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(0, -16px); }
+}
+.animate-float-slow { animation: float-slow 8s ease-in-out infinite; }

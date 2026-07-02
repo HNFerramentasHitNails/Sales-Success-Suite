@@ -12,6 +12,7 @@ import {
   Building2,
   ArrowRight,
   Check,
+  X,
   Sparkles,
   LineChart,
   TrendingUp,
@@ -21,6 +22,9 @@ import {
   Store,
   Gift,
   Zap,
+  CreditCard,
+  Ban,
+  Languages,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -33,6 +37,7 @@ import {
 } from "@/components/ui/accordion";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import Reveal from "@/components/landing/Reveal";
 
 type PublicPlan = {
   key: string;
@@ -91,6 +96,26 @@ const FEATURES = [
   { icon: Building2, title: "Multi-empresa / white-label", desc: "Várias organizações com marca, moeda e fiscalidade próprias." },
 ];
 
+const TRUST_PILLS = [
+  { icon: CreditCard, label: "Sem cartão no trial" },
+  { icon: Ban, label: "Cancele quando quiser" },
+  { icon: Languages, label: "Suporte em português" },
+];
+
+const BEFORE = [
+  "Folhas de cálculo espalhadas para clientes, encomendas e comissões",
+  "WhatsApp, email e Excel sem ligação nenhuma entre si",
+  "Comissões calculadas à mão, todos os meses",
+  "Sem visibilidade real do pipeline nem da equipa",
+];
+
+const AFTER = [
+  "Clientes, pipeline, encomendas e comissões no mesmo sítio",
+  "Campanhas de Email e WhatsApp ligadas ao histórico do cliente",
+  "Comissões calculadas automaticamente, por regras que define uma vez",
+  "Dashboard com KPIs, Pareto e ranking da equipa em tempo real",
+];
+
 const OUTCOMES = [
   { icon: Zap, title: "Tudo num só sítio", desc: "Do primeiro contacto à fatura paga — sem juntar cinco ferramentas." },
   { icon: Bot, title: "IA que trabalha consigo", desc: "Gera mensagens, prepara reuniões e sugere os próximos passos." },
@@ -127,6 +152,14 @@ function planCta(planKey: string) {
 export default function Landing() {
   const { user, loading } = useAuth();
   const [plans, setPlans] = useState<PublicPlan[]>(FALLBACK_PLANS);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -166,10 +199,14 @@ export default function Landing() {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-50 backdrop-blur-md bg-background/80 border-b border-border">
+      <header
+        className={`sticky top-0 z-50 backdrop-blur-md bg-background/80 border-b transition-shadow duration-300 ${
+          scrolled ? "border-border shadow-[var(--shadow-soft)]" : "border-transparent"
+        }`}
+      >
         <div className="container-app h-16 flex items-center justify-between">
-          <a href="#top" className="flex items-center gap-2 font-display font-bold text-lg">
-            <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+          <a href="#top" className="flex items-center gap-2 font-display font-bold text-lg group">
+            <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-[var(--shadow-soft)] transition-transform group-hover:scale-105">
               <Dna className="h-5 w-5" />
             </span>
             <span>Sales Success Suite</span>
@@ -201,13 +238,16 @@ export default function Landing() {
 
       {/* Hero */}
       <section id="top" className="relative overflow-hidden">
+        <div className="absolute inset-0 -z-10 bg-dot-grid opacity-[0.35] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,black_10%,transparent_70%)]" />
         <div
-          className="absolute inset-0 -z-10 opacity-[0.07]"
+          className="absolute inset-0 -z-10 opacity-[0.09]"
           style={{
             backgroundImage:
               "radial-gradient(circle at 20% 20%, hsl(var(--primary)) 0, transparent 40%), radial-gradient(circle at 80% 0%, hsl(var(--accent)) 0, transparent 35%)",
           }}
         />
+        <div className="absolute -left-24 top-24 h-72 w-72 rounded-full bg-primary/10 blur-3xl -z-10 animate-float-slow" />
+        <div className="absolute -right-16 top-56 h-64 w-64 rounded-full bg-accent/15 blur-3xl -z-10 animate-float" />
         <div className="container-app pt-20 pb-16 lg:pt-28 lg:pb-24 grid lg:grid-cols-2 gap-12 items-center">
           <div className="space-y-7 animate-reveal-up">
             <Badge variant="secondary" className="rounded-full px-3 py-1">
@@ -224,30 +264,42 @@ export default function Landing() {
               portuguesas que querem crescer com método.
             </p>
             <div className="flex flex-wrap gap-3">
-              <Button asChild size="lg" className="text-base">
+              <Button asChild size="lg" className="text-base shadow-[var(--shadow-elegant)] hover:shadow-[var(--shadow-glow)] transition-shadow">
                 <Link to={primaryCta.href}>
                   {primaryCta.label}
-                  <ArrowRight className="h-4 w-4 ml-1" />
+                  <ArrowRight className="h-4 w-4 ml-1 transition-transform group-hover:translate-x-0.5" />
                 </Link>
               </Button>
               <Button asChild size="lg" variant="outline" className="text-base">
                 <a href="#precos">Ver preços</a>
               </Button>
             </div>
-            <p className="text-sm text-muted-foreground">
-              {user ? "Sessão ativa — bem-vindo de volta." : "Trial de 14 dias · sem cartão · cancela quando quiser"}
-            </p>
+            {user ? (
+              <p className="text-sm text-muted-foreground">Sessão ativa — bem-vindo de volta.</p>
+            ) : (
+              <div className="flex flex-wrap gap-x-5 gap-y-2 pt-1">
+                {TRUST_PILLS.map((t) => (
+                  <span key={t.label} className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
+                    <t.icon className="h-4 w-4 text-success" />
+                    {t.label}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Product mockup */}
           <div className="relative animate-reveal-up">
-            <div className="absolute -inset-6 bg-gradient-to-tr from-primary/10 via-accent/10 to-transparent rounded-3xl blur-2xl" />
-            <Card className="relative overflow-hidden border-border/60 shadow-[var(--shadow-elegant)]">
+            <div className="absolute -inset-6 bg-gradient-to-tr from-primary/10 via-accent/10 to-transparent rounded-3xl blur-2xl animate-pulse-glow" />
+            <Badge className="absolute -top-4 -right-3 z-10 hidden sm:inline-flex bg-accent text-accent-foreground hover:bg-accent shadow-[var(--shadow-elegant)] rounded-full px-3 py-1.5 gap-1.5">
+              <Bot className="h-3.5 w-3.5" /> IA integrada
+            </Badge>
+            <Card className="relative overflow-hidden border-border/60 shadow-[var(--shadow-elegant)] ring-1 ring-border/40">
               <div className="h-9 flex items-center gap-1.5 px-4 border-b bg-muted/40">
                 <span className="h-2.5 w-2.5 rounded-full bg-destructive/70" />
                 <span className="h-2.5 w-2.5 rounded-full bg-warning/80" />
                 <span className="h-2.5 w-2.5 rounded-full bg-success/80" />
-                <span className="ml-3 text-xs text-muted-foreground">app.salesdna.pt / dashboard</span>
+                <span className="ml-3 text-xs text-muted-foreground">Sales Success Suite / dashboard</span>
               </div>
               <div className="p-5 space-y-4 bg-gradient-to-b from-surface-alt to-background">
                 <div className="flex items-center justify-between">
@@ -320,24 +372,81 @@ export default function Landing() {
 
       {/* Outcomes band */}
       <section className="border-y bg-surface-alt">
-        <div className="container-app py-10 grid sm:grid-cols-3 gap-6">
-          {OUTCOMES.map((o) => (
-            <div key={o.title} className="flex items-start gap-3">
-              <div className="h-10 w-10 shrink-0 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
-                <o.icon className="h-5 w-5" />
+        <Reveal className="container-app py-10 grid sm:grid-cols-3 gap-6">
+          <>
+            {OUTCOMES.map((o) => (
+              <div key={o.title} className="flex items-start gap-3">
+                <div className="h-10 w-10 shrink-0 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                  <o.icon className="h-5 w-5" />
+                </div>
+                <div>
+                  <div className="font-display font-semibold">{o.title}</div>
+                  <p className="text-sm text-muted-foreground mt-0.5">{o.desc}</p>
+                </div>
               </div>
-              <div>
-                <div className="font-display font-semibold">{o.title}</div>
-                <p className="text-sm text-muted-foreground mt-0.5">{o.desc}</p>
+            ))}
+          </>
+        </Reveal>
+      </section>
+
+      {/* Antes / Depois */}
+      <section className="container-app py-20 lg:py-24">
+        <Reveal className="max-w-2xl mx-auto text-center mb-12">
+          <Badge variant="outline" className="mb-4">Porquê mudar</Badge>
+          <h2 className="font-display text-3xl md:text-4xl font-bold tracking-tight">
+            Chega de ferramentas dispersas
+          </h2>
+          <p className="mt-3 text-muted-foreground">
+            Troque as folhas de cálculo, os grupos de WhatsApp e as contas soltas por um único sítio
+            onde tudo fica ligado.
+          </p>
+        </Reveal>
+        <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+          <Reveal>
+            <Card className="p-7 h-full border-border/60">
+              <div className="flex items-center gap-2 mb-5">
+                <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center">
+                  <X className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <h3 className="font-display font-semibold text-lg text-muted-foreground">Antes</h3>
               </div>
-            </div>
-          ))}
+              <ul className="space-y-3.5">
+                {BEFORE.map((b) => (
+                  <li key={b} className="flex items-start gap-2.5 text-sm text-muted-foreground">
+                    <X className="h-4 w-4 mt-0.5 shrink-0 text-destructive/60" />
+                    <span>{b}</span>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          </Reveal>
+          <Reveal delay={120}>
+            <Card className="p-7 h-full border-primary/30 shadow-[var(--shadow-card)] bg-gradient-to-b from-surface-alt to-background relative overflow-hidden">
+              <div className="absolute inset-0 opacity-[0.06] pointer-events-none" style={{ backgroundImage: "radial-gradient(circle at 90% 0%, hsl(var(--primary)) 0, transparent 45%)" }} />
+              <div className="relative">
+                <div className="flex items-center gap-2 mb-5">
+                  <div className="h-8 w-8 rounded-lg bg-primary text-primary-foreground flex items-center justify-center">
+                    <Check className="h-4 w-4" />
+                  </div>
+                  <h3 className="font-display font-semibold text-lg">Com o Sales Success Suite</h3>
+                </div>
+                <ul className="space-y-3.5">
+                  {AFTER.map((a) => (
+                    <li key={a} className="flex items-start gap-2.5 text-sm">
+                      <Check className="h-4 w-4 mt-0.5 shrink-0 text-success" />
+                      <span>{a}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </Card>
+          </Reveal>
         </div>
       </section>
 
       {/* Features */}
       <section id="funcionalidades" className="container-app py-20 lg:py-28 scroll-mt-16">
-        <div className="max-w-2xl mb-14">
+        <Reveal className="max-w-2xl mb-14">
           <Badge variant="outline" className="mb-4">Funcionalidades</Badge>
           <h2 className="font-display text-3xl md:text-4xl font-bold tracking-tight">
             Um CRM pensado para equipas que querem resultados
@@ -345,24 +454,27 @@ export default function Landing() {
           <p className="mt-3 text-muted-foreground">
             Cobertura completa do ciclo comercial — sem precisar de juntar cinco ferramentas diferentes.
           </p>
-        </div>
+        </Reveal>
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          {FEATURES.map((f) => (
-            <Card key={f.title} className="p-6 hover:shadow-[var(--shadow-card)] transition-all hover:-translate-y-0.5">
-              <div className="h-11 w-11 rounded-lg bg-primary/10 text-primary flex items-center justify-center mb-4">
-                <f.icon className="h-5 w-5" />
-              </div>
-              <h3 className="font-display font-semibold text-lg mb-1">{f.title}</h3>
-              <p className="text-sm text-muted-foreground">{f.desc}</p>
-            </Card>
+          {FEATURES.map((f, i) => (
+            <Reveal key={f.title} delay={(i % 4) * 60}>
+              <Card className="group p-6 h-full border-border/60 transition-all duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-[var(--shadow-card)]">
+                <div className="h-11 w-11 rounded-lg bg-gradient-to-br from-primary/15 to-accent/15 text-primary flex items-center justify-center mb-4 transition-colors group-hover:from-primary group-hover:to-primary-glow group-hover:text-primary-foreground">
+                  <f.icon className="h-5 w-5" />
+                </div>
+                <h3 className="font-display font-semibold text-lg mb-1">{f.title}</h3>
+                <p className="text-sm text-muted-foreground">{f.desc}</p>
+              </Card>
+            </Reveal>
           ))}
         </div>
       </section>
 
       {/* IA & Outreach showcase */}
-      <section id="ia" className="bg-surface-alt border-y scroll-mt-16">
+      <section id="ia" className="bg-surface-alt border-y scroll-mt-16 relative overflow-hidden">
+        <div className="absolute -right-32 -top-32 h-80 w-80 rounded-full bg-accent/10 blur-3xl -z-10" />
         <div className="container-app py-20 lg:py-28 grid lg:grid-cols-2 gap-12 items-center">
-          <div>
+          <Reveal>
             <Badge variant="outline" className="mb-4">
               <Bot className="h-3.5 w-3.5 mr-1.5" /> IA & Outreach
             </Badge>
@@ -391,12 +503,12 @@ export default function Landing() {
                 </li>
               ))}
             </ul>
-          </div>
+          </Reveal>
 
           {/* Chat / campaign mock */}
-          <div className="relative animate-reveal-up">
-            <div className="absolute -inset-6 bg-gradient-to-tr from-accent/10 via-primary/10 to-transparent rounded-3xl blur-2xl" />
-            <Card className="relative overflow-hidden border-border/60 shadow-[var(--shadow-elegant)]">
+          <Reveal delay={150} className="relative">
+            <div className="absolute -inset-6 bg-gradient-to-tr from-accent/10 via-primary/10 to-transparent rounded-3xl blur-2xl animate-pulse-glow" />
+            <Card className="relative overflow-hidden border-border/60 shadow-[var(--shadow-elegant)] ring-1 ring-border/40">
               <div className="flex items-center gap-2 px-4 h-11 border-b bg-muted/40">
                 <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-primary text-primary-foreground">
                   <Bot className="h-3.5 w-3.5" />
@@ -428,28 +540,31 @@ export default function Landing() {
                 </div>
               </div>
             </Card>
-          </div>
+          </Reveal>
         </div>
       </section>
 
       {/* How it works */}
       <section className="bg-background">
         <div className="container-app py-20 lg:py-24">
-          <div className="max-w-2xl mb-12">
+          <Reveal className="max-w-2xl mb-12">
             <Badge variant="outline" className="mb-4">Como funciona</Badge>
             <h2 className="font-display text-3xl md:text-4xl font-bold tracking-tight">
               Da inscrição aos resultados em três passos
             </h2>
-          </div>
-          <div className="grid md:grid-cols-3 gap-6">
-            {STEPS.map((s) => (
-              <Card key={s.n} className="p-7 relative">
-                <div className="absolute -top-4 left-7 h-9 w-9 rounded-full bg-accent text-accent-foreground font-display font-bold flex items-center justify-center shadow-md">
-                  {s.n}
-                </div>
-                <h3 className="font-display font-semibold text-xl mt-2 mb-2">{s.title}</h3>
-                <p className="text-muted-foreground">{s.desc}</p>
-              </Card>
+          </Reveal>
+          <div className="grid md:grid-cols-3 gap-6 relative">
+            <div className="hidden md:block absolute top-11 left-[16.5%] right-[16.5%] h-px bg-gradient-to-r from-transparent via-border to-transparent" />
+            {STEPS.map((s, i) => (
+              <Reveal key={s.n} delay={i * 100}>
+                <Card className="p-7 relative h-full hover:shadow-[var(--shadow-card)] transition-shadow">
+                  <div className="absolute -top-4 left-7 h-9 w-9 rounded-full bg-accent text-accent-foreground font-display font-bold flex items-center justify-center shadow-md ring-4 ring-background">
+                    {s.n}
+                  </div>
+                  <h3 className="font-display font-semibold text-xl mt-2 mb-2">{s.title}</h3>
+                  <p className="text-muted-foreground">{s.desc}</p>
+                </Card>
+              </Reveal>
             ))}
           </div>
         </div>
@@ -457,7 +572,7 @@ export default function Landing() {
 
       {/* Pricing */}
       <section id="precos" className="container-app py-20 lg:py-28 scroll-mt-16">
-        <div className="max-w-2xl mx-auto text-center mb-14">
+        <Reveal className="max-w-2xl mx-auto text-center mb-14">
           <Badge variant="outline" className="mb-4">Preços</Badge>
           <h2 className="font-display text-3xl md:text-4xl font-bold tracking-tight">
             Planos simples, sem surpresas
@@ -465,49 +580,54 @@ export default function Landing() {
           <p className="mt-3 text-muted-foreground">
             Comece com o trial gratuito de 14 dias. Mude de plano quando quiser.
           </p>
-        </div>
+        </Reveal>
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5 items-stretch">
-          {plans.map((p) => {
+          {plans.map((p, i) => {
             const popular = p.key === "business";
             const cta = planCta(p.key);
             return (
-              <Card
-                key={p.key}
-                className={`p-6 flex flex-col relative ${popular ? "border-accent shadow-[var(--shadow-elegant)] lg:scale-[1.03]" : ""}`}
-              >
-                {popular && (
-                  <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-accent text-accent-foreground hover:bg-accent">
-                    Mais popular
-                  </Badge>
-                )}
-                <div className="mb-4">
-                  <div className="font-display font-semibold text-lg">{p.name}</div>
-                  <p className="text-sm text-muted-foreground mt-1 min-h-[40px]">
-                    {p.description ?? ""}
-                  </p>
+              <Reveal key={p.key} delay={i * 80} className="h-full">
+                <div className={popular ? "h-full rounded-[calc(var(--radius)+2px)] p-[1.5px] bg-gradient-to-b from-accent via-accent/60 to-accent/20 lg:scale-[1.04]" : "h-full"}>
+                  <Card
+                    className={`p-6 flex flex-col relative h-full transition-shadow ${
+                      popular ? "border-0 shadow-[var(--shadow-elegant)]" : "border-border/60 hover:shadow-[var(--shadow-card)]"
+                    }`}
+                  >
+                    {popular && (
+                      <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-accent text-accent-foreground hover:bg-accent shadow-md">
+                        Mais popular
+                      </Badge>
+                    )}
+                    <div className="mb-4">
+                      <div className="font-display font-semibold text-lg">{p.name}</div>
+                      <p className="text-sm text-muted-foreground mt-1 min-h-[40px]">
+                        {p.description ?? ""}
+                      </p>
+                    </div>
+                    <div className="mb-5">
+                      <span className="font-display text-4xl font-extrabold">{formatPrice(p)}</span>
+                      {p.key !== "enterprise" && p.price_monthly && p.price_monthly > 0 && (
+                        <span className="text-muted-foreground"> /mês</span>
+                      )}
+                    </div>
+                    <ul className="space-y-2 mb-6 flex-1">
+                      {(PLAN_FEATURES[p.key] ?? []).map((feat) => (
+                        <li key={feat} className="flex items-start gap-2 text-sm">
+                          <Check className="h-4 w-4 text-success mt-0.5 shrink-0" />
+                          <span>{feat}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    <Button asChild variant={popular ? "default" : "outline"} className="w-full">
+                      {cta.href.startsWith("mailto:") ? (
+                        <a href={cta.href}>{cta.label}</a>
+                      ) : (
+                        <Link to={cta.href}>{cta.label}</Link>
+                      )}
+                    </Button>
+                  </Card>
                 </div>
-                <div className="mb-5">
-                  <span className="font-display text-4xl font-extrabold">{formatPrice(p)}</span>
-                  {p.key !== "enterprise" && p.price_monthly && p.price_monthly > 0 && (
-                    <span className="text-muted-foreground"> /mês</span>
-                  )}
-                </div>
-                <ul className="space-y-2 mb-6 flex-1">
-                  {(PLAN_FEATURES[p.key] ?? []).map((feat) => (
-                    <li key={feat} className="flex items-start gap-2 text-sm">
-                      <Check className="h-4 w-4 text-success mt-0.5 shrink-0" />
-                      <span>{feat}</span>
-                    </li>
-                  ))}
-                </ul>
-                <Button asChild variant={popular ? "default" : "outline"} className="w-full">
-                  {cta.href.startsWith("mailto:") ? (
-                    <a href={cta.href}>{cta.label}</a>
-                  ) : (
-                    <Link to={cta.href}>{cta.label}</Link>
-                  )}
-                </Button>
-              </Card>
+              </Reveal>
             );
           })}
         </div>
@@ -516,7 +636,7 @@ export default function Landing() {
       {/* Security */}
       <section className="bg-surface-alt border-y">
         <div className="container-app py-20 grid lg:grid-cols-2 gap-10 items-center">
-          <div>
+          <Reveal>
             <Badge variant="outline" className="mb-4">Segurança e confiança</Badge>
             <h2 className="font-display text-3xl md:text-4xl font-bold tracking-tight">
               Os seus dados, isolados e protegidos
@@ -525,19 +645,21 @@ export default function Landing() {
               Arquitetura multi-tenant com isolamento por organização ao nível da base de dados,
               papéis granulares e auditoria. A sua empresa nunca partilha dados com ninguém.
             </p>
-          </div>
+          </Reveal>
           <div className="grid sm:grid-cols-2 gap-4">
             {[
               { icon: ShieldCheck, t: "RLS por organização", d: "Cada empresa só vê os seus dados, garantido na base de dados." },
               { icon: Users, t: "Papéis e permissões", d: "Owner, admin, diretor, comercial, leitura. Tudo configurável." },
               { icon: Building2, t: "Multi-empresa", d: "Várias organizações por utilizador, com troca rápida." },
               { icon: Plug, t: "Integrações por org", d: "Cada empresa liga as suas próprias contas externas." },
-            ].map((b) => (
-              <Card key={b.t} className="p-5">
-                <b.icon className="h-5 w-5 text-primary mb-2" />
-                <div className="font-display font-semibold">{b.t}</div>
-                <p className="text-sm text-muted-foreground mt-1">{b.d}</p>
-              </Card>
+            ].map((b, i) => (
+              <Reveal key={b.t} delay={i * 70}>
+                <Card className="p-5 h-full border-border/60 hover:border-primary/30 hover:shadow-[var(--shadow-soft)] transition-all">
+                  <b.icon className="h-5 w-5 text-primary mb-2" />
+                  <div className="font-display font-semibold">{b.t}</div>
+                  <p className="text-sm text-muted-foreground mt-1">{b.d}</p>
+                </Card>
+              </Reveal>
             ))}
           </div>
         </div>
@@ -545,13 +667,13 @@ export default function Landing() {
 
       {/* FAQ */}
       <section id="faq" className="container-app py-20 lg:py-24 scroll-mt-16">
-        <div className="max-w-2xl mx-auto text-center mb-10">
+        <Reveal className="max-w-2xl mx-auto text-center mb-10">
           <Badge variant="outline" className="mb-4">FAQ</Badge>
           <h2 className="font-display text-3xl md:text-4xl font-bold tracking-tight">
             Perguntas frequentes
           </h2>
-        </div>
-        <div className="max-w-3xl mx-auto">
+        </Reveal>
+        <Reveal delay={100} className="max-w-3xl mx-auto">
           <Accordion type="single" collapsible className="w-full">
             {FAQS.map((f, i) => (
               <AccordionItem key={i} value={`item-${i}`}>
@@ -560,36 +682,40 @@ export default function Landing() {
               </AccordionItem>
             ))}
           </Accordion>
-        </div>
+        </Reveal>
       </section>
 
       {/* Final CTA */}
       <section className="container-app pb-20">
-        <Card className="relative overflow-hidden p-10 md:p-14 text-center bg-gradient-to-br from-primary to-primary-glow border-0 text-primary-foreground">
-          <div className="absolute inset-0 opacity-30 pointer-events-none" style={{ backgroundImage: "radial-gradient(circle at 80% 20%, hsl(var(--accent)) 0, transparent 40%)" }} />
-          <div className="relative">
-            <h2 className="font-display text-3xl md:text-4xl font-bold tracking-tight">
-              Pronto para começar?
-            </h2>
-            <p className="mt-3 opacity-90 max-w-xl mx-auto">
-              Crie a sua conta em segundos e experimente o Sales Success Suite grátis durante 14 dias.
-            </p>
-            <div className="mt-7 flex flex-wrap gap-3 justify-center">
-              <Button asChild size="lg" variant="secondary">
-                <Link to={primaryCta.href}>{primaryCta.label}<ArrowRight className="h-4 w-4 ml-1" /></Link>
-              </Button>
-              {!user && (
-                <Button asChild size="lg" variant="outline" className="bg-transparent text-primary-foreground border-primary-foreground/40 hover:bg-primary-foreground/10 hover:text-primary-foreground">
-                  <Link to={secondaryCta.href}>{secondaryCta.label}</Link>
+        <Reveal>
+          <Card className="relative overflow-hidden p-10 md:p-14 text-center bg-gradient-to-br from-primary to-primary-glow border-0 text-primary-foreground shadow-[var(--shadow-elegant)]">
+            <div className="absolute inset-0 opacity-30 pointer-events-none" style={{ backgroundImage: "radial-gradient(circle at 80% 20%, hsl(var(--accent)) 0, transparent 40%)" }} />
+            <div className="absolute inset-0 -z-0 bg-dot-grid opacity-[0.08]" />
+            <div className="relative">
+              <h2 className="font-display text-3xl md:text-4xl font-bold tracking-tight">
+                Pronto para começar?
+              </h2>
+              <p className="mt-3 opacity-90 max-w-xl mx-auto">
+                Crie a sua conta em segundos e experimente o Sales Success Suite grátis durante 14 dias.
+              </p>
+              <div className="mt-7 flex flex-wrap gap-3 justify-center">
+                <Button asChild size="lg" variant="secondary" className="shadow-lg hover:shadow-xl transition-shadow">
+                  <Link to={primaryCta.href}>{primaryCta.label}<ArrowRight className="h-4 w-4 ml-1" /></Link>
                 </Button>
-              )}
+                {!user && (
+                  <Button asChild size="lg" variant="outline" className="bg-transparent text-primary-foreground border-primary-foreground/40 hover:bg-primary-foreground/10 hover:text-primary-foreground">
+                    <Link to={secondaryCta.href}>{secondaryCta.label}</Link>
+                  </Button>
+                )}
+              </div>
             </div>
-          </div>
-        </Card>
+          </Card>
+        </Reveal>
       </section>
 
       {/* Footer */}
-      <footer className="border-t mt-auto">
+      <footer className="relative mt-auto border-t">
+        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
         <div className="container-app py-10 space-y-8">
           <div className="flex flex-col md:flex-row gap-6 items-center justify-between">
             <div className="flex items-center gap-2 font-display font-semibold">
